@@ -11,7 +11,7 @@ from scipy import stats
 # --- CONFIGURAZIONE PAGINA E TEMA ---
 st.set_page_config(page_title="FTSE MIB Dashboard", layout="wide", page_icon="📈")
 
-# CUSTOM CSS: STILE BIANCO PANNA E MINIMAL
+# CUSTOM CSS: STILE BIANCO PANNA, MINIMAL E TAB A PULSANTE
 st.markdown("""
 <style>
     /* Importa font moderno Roboto */
@@ -22,32 +22,49 @@ st.markdown("""
         background-color: #FDFBF7;
     }
     
-    /* 2. TESTI IN GRIGIO ELEGANTE (Non nero) */
-    html, body, p, li, div, span, label {
+    /* 2. TESTI */
+    html, body, p, li, div, span, label, h1, h2, h3 {
         font-family: 'Roboto', sans-serif;
-        color: #484848 !important; /* Grigio Antracite morbido */
+        color: #484848 !important;
     }
     
-    /* Titoli leggermente più scuri */
-    h1, h2, h3 {
-        color: #2c2c2c !important;
-        font-weight: 700;
+    /* 3. TRASFORMAZIONE TAB IN PULSANTI */
+    /* Stile base del bottone (Tab inattivo) */
+    button[data-baseweb="tab"] {
+        background-color: #e0e0e0; /* Grigio chiaro pulsante */
+        border-radius: 8px; /* Angoli arrotondati */
+        border: none;
+        color: #484848;
+        font-weight: 600;
+        margin-right: 8px; /* Spazio tra i pulsanti */
+        padding: 8px 16px;
+        transition: all 0.3s ease;
     }
     
-    /* 3. METRICHE (NUMERI GRANDI) */
+    /* Stile bottone attivo (Tab selezionato) */
+    button[data-baseweb="tab"][aria-selected="true"] {
+        background-color: #484848 !important; /* Grigio scuro attivo */
+        color: white !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    /* Rimuove la linea rossa/sottolineatura di default di Streamlit */
+    div[data-testid="stTabs"] > div > div {
+        box-shadow: none !important;
+        border-bottom: none !important;
+        gap: 0px;
+    }
+
+    /* 4. TABELLE */
+    .stDataFrame {
+        border: 1px solid #dcdcdc;
+        border-radius: 5px;
+    }
+    
+    /* 5. METRICHE */
     [data-testid="stMetricValue"] {
         font-size: 1.8rem !important;
-        color: #2c2c2c !important; /* Grigio scuro per i numeri */
-    }
-    [data-testid="stMetricLabel"] {
-        color: #666666 !important; /* Grigio medio per le etichette */
-    }
-    
-    /* 4. TABELLE PULITE E MINIMAL */
-    .stDataFrame {
-        background-color: #FFFFFF; /* Sfondo bianco puro per la tabella */
-        border: 1px solid #e0e0e0; /* Bordo grigio chiarissimo */
-        border-radius: 5px;
+        color: #2c2c2c !important;
     }
     
     /* Spaziature */
@@ -56,18 +73,15 @@ st.markdown("""
         padding-bottom: 2rem;
     }
     
-    /* Rimuove lo sfondo scuro dalle barre di caricamento per coerenza */
     .stProgress > div > div > div > div {
         background-color: #484848;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Impostazioni grafici globali (Seaborn/Matplotlib)
-# Usiamo uno stile che si adatti al fondo chiaro
+# Impostazioni grafici globali
 sns.set_theme(style="ticks", context="talk")
 plt.rcParams['figure.figsize'] = (10, 6)
-# Rende lo sfondo dei grafici trasparente o uguale alla pagina
 plt.rcParams['figure.facecolor'] = '#FDFBF7' 
 plt.rcParams['axes.facecolor'] = '#FDFBF7'
 plt.rcParams['axes.spines.top'] = False
@@ -79,20 +93,13 @@ plt.rcParams['ytick.color'] = '#484848'
 
 # =============================================================================
 # CLASSE 1: DATA MANAGER
-# Gestisce il recupero dati grezzi, la pulizia e il calcolo della classifica.
 # =============================================================================
 class DataManager:
-    """
-    Classe responsabile dell'interazione con le API di Yahoo Finance.
-    Gestisce il download dei prezzi storici e il calcolo real-time della
-    capitalizzazione di mercato.
-    """
     def __init__(self, benchmark="FTSEMIB.MI", start_date="2019-01-01"):
         self.benchmark = benchmark
         self.start_date = start_date
 
     def _get_mapping(self):
-        """Restituisce il dizionario completo dei ticker del paniere FTSE MIB."""
         return {
             "A2A": "A2A.MI", "Amplifon": "AMP.MI", "Generali": "G.MI",
             "Azimut": "AZM.MI", "Banca Mediolanum": "BMED.MI", "Banca Pop. Sondrio": "BPSO.MI",
@@ -109,60 +116,44 @@ class DataManager:
         }
 
     def get_top_10_tickers(self):
-        """
-        Calcola la Top 10 per Capitalizzazione di Mercato in tempo reale.
-        Scarica prezzi e numero di azioni live da Yahoo Finance.
-        """
         mapping = self._get_mapping()
         all_tickers = list(mapping.values())
         market_caps = {}
         
-        # Barra di progresso per feedback utente
         progress_bar = st.progress(0, text="Calcolo Market Cap in tempo reale...")
         
         try:
-            # 1. Batch Download dei prezzi
             batch_data = yf.download(all_tickers, period="1d", progress=False)
-            
             if 'Close' in batch_data.columns:
                 last_prices = batch_data['Close'].iloc[-1]
             else:
                 last_prices = batch_data.iloc[-1]
             
-            # 2. Loop per scaricare i metadati (Shares Outstanding)
             total_tickers = len(all_tickers)
             for i, ticker in enumerate(all_tickers):
                 progress_bar.progress((i + 1) / total_tickers, text=f"Analisi ticker: {ticker}")
-                
                 try:
                     price = last_prices.get(ticker)
                     if pd.isna(price): continue
-                    
-                    # Recupero LIVE del numero di azioni
                     ticker_obj = yf.Ticker(ticker)
                     shares = ticker_obj.fast_info.get('shares', 0)
-                    
                     if shares > 0 and price > 0:
                         market_caps[ticker] = price * shares
                 except Exception:
                     continue
 
             progress_bar.empty()
-
-            # 3. Ordinamento
             sorted_caps = dict(sorted(market_caps.items(), key=lambda item: item[1], reverse=True))
             return list(sorted_caps.keys())[:10]
 
         except Exception as e:
-            st.error(f"Errore critico nel calcolo della classifica: {e}")
+            st.error(f"Errore critico classifica: {e}")
             return []
 
     def download_historical_data(self, tickers):
-        """Scarica i prezzi storici."""
         full_list = tickers + [self.benchmark]
         try:
             raw_data = yf.download(full_list, start=self.start_date, progress=False)
-            
             if 'Adj Close' in raw_data.columns:
                 data = raw_data['Adj Close']
             elif 'Close' in raw_data.columns:
@@ -172,15 +163,13 @@ class DataManager:
                     data = raw_data.xs('Adj Close', level=0, axis=1)
                 except:
                     data = raw_data.xs('Close', level=0, axis=1)
-            
             return data.dropna()
         except Exception as e:
-            st.error(f"Errore nel download dei dati storici: {e}")
+            st.error(f"Errore download: {e}")
             return pd.DataFrame()
 
 # =============================================================================
 # CLASSE 2: FINANCIAL ANALYZER
-# Esegue calcoli statistici e finanziari.
 # =============================================================================
 class FinancialAnalyzer:
     def __init__(self, data, benchmark_data=None):
@@ -226,14 +215,12 @@ class FinancialAnalyzer:
         stats_df = df_calc.agg(['min', 'max']).T
         stats_df['Range'] = stats_df['max'] - stats_df['min']
         stats_df['Max Drawdown'] = df_calc.apply(self._calc_max_drawdown)
-        
         if self.bench_r is not None:
             bench_s = self.bench_r
             for col in self.returns.columns: 
                 stats_df.loc[col, 'Cov. Mkt'] = self.returns[col].cov(bench_s)
                 stats_df.loc[col, 'Corr. Mkt'] = self.returns[col].corr(bench_s)
             stats_df.loc['FTSE MIB', ['Cov. Mkt', 'Corr. Mkt']] = np.nan
-            
         stats_df.rename(columns={'min': 'Min', 'max': 'Max'}, inplace=True)
         return stats_df[['Min', 'Max', 'Range', 'Max Drawdown', 'Cov. Mkt', 'Corr. Mkt']]
 
@@ -250,7 +237,6 @@ class FinancialAnalyzer:
 
 # =============================================================================
 # CLASSE 3: VISUALIZER
-# Gestisce la creazione di grafici Matplotlib/Seaborn.
 # =============================================================================
 class Visualizer:
     def __init__(self, prices, returns, benchmark=None, non_norm_metrics=None):
@@ -260,17 +246,12 @@ class Visualizer:
     def plot_normalized_prices(self):
         norm = (self.prices / self.prices.iloc[0]) * 100
         fig, ax = plt.subplots(figsize=(10, 6))
-        
-        # Colormap sobria
         colors = sns.color_palette("husl", len(norm.columns))
-        
         for i, c in enumerate(norm.columns):
             ax.plot(norm.index, norm[c], label=c, alpha=0.9, linewidth=1.5, color=colors[i])
-            
         if self.bench is not None:
             bn = (self.bench / self.bench.iloc[0]) * 100
             ax.plot(bn.index, bn, label="FTSE MIB", color='#2c2c2c', ls='--', lw=2.5)
-            
         ax.set_title("Performance Relativa (Base 100)", fontweight='bold', pad=15)
         ax.set_xlabel("")
         ax.grid(True, linestyle=':', alpha=0.4)
@@ -280,7 +261,6 @@ class Visualizer:
 
     def plot_returns_boxplot(self):
         fig, ax = plt.subplots(figsize=(10, 6))
-        # Palette grigia/blu sobria
         sns.boxplot(data=self.returns, ax=ax, palette="light:b", fliersize=3, linewidth=1)
         ax.set_title("Dispersione Rendimenti Giornalieri", fontweight='bold', pad=15)
         ax.grid(True, axis='y', linestyle=':', alpha=0.4)
@@ -294,28 +274,22 @@ class Visualizer:
              df_combined['FTSE MIB'] = self.bench.pct_change().dropna()
         df_combined = df_combined.dropna()
         melt = df_combined.melt(var_name='Ticker', value_name='Rendimento')
-        
         g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=2.0, aspect=1.5)
-        
-        # Colore grigio/acciaio per l'istogramma
         g.map_dataframe(sns.histplot, x="Rendimento", kde=True, color="#778899", edgecolor="white", linewidth=0.5)
         g.set_titles("{col_name}", fontweight='bold')
         g.set_axis_labels("", "")
         g.despine(left=True)
-        
         legend_elements = [
             Patch(facecolor='#778899', edgecolor='none', label='Frequenza'),
             Line2D([0], [0], color='#778899', lw=2, label='Densità (KDE)')
         ]
         g.fig.legend(handles=legend_elements, loc='lower right', fontsize=9, bbox_to_anchor=(0.95, 0.05), frameon=False)
-
         plt.subplots_adjust(top=0.9)
         g.fig.suptitle('Distribuzione Rendimenti', fontweight='bold', y=0.98)
         return g.fig
 
     def plot_correlation_heatmap(self):
         fig, ax = plt.subplots(figsize=(10, 6))
-        # Palette 'bone_r' (bianco/grigio/nero) o 'vlag' per eleganza
         sns.heatmap(self.returns.corr(), annot=True, cmap='vlag', center=0, fmt=".2f", 
                     ax=ax, cbar_kws={'label': 'Correlazione'}, linewidths=0.5, linecolor='white')
         ax.set_title("Matrice di Correlazione", fontweight='bold', pad=15)
@@ -342,40 +316,30 @@ class PortfolioOptimizer:
         for _ in range(self.n):
             w = np.random.random(n_assets)
             w /= np.sum(w)
-            
             ret_ann = np.sum(mean_daily * w) * 252
             vol_ann = np.sqrt(np.dot(w.T, np.dot(cov_matrix, w))) * np.sqrt(252)
             sharpe = ret_ann / vol_ann if vol_ann > 0 else 0
-            
             results_list.append([ret_ann, vol_ann, sharpe])
             weights_list.append(w)
             
         self.results = pd.DataFrame(results_list, columns=['Rendimento', 'Volatilità', 'Sharpe'])
         self.weights = np.array(weights_list)
-        
         max_sharpe_idx = self.results['Sharpe'].idxmax()
         min_vol_idx = self.results['Volatilità'].idxmin()
-        
         max_sharpe_pt = self.results.iloc[max_sharpe_idx]
         min_vol_pt = self.results.iloc[min_vol_idx]
-        
         max_w = self.weights[max_sharpe_idx]
         min_w = self.weights[min_vol_idx]
-        
         return max_sharpe_pt, min_vol_pt, max_w, min_w
 
     def plot_efficient_frontier(self, max_pt, min_pt):
         fig, ax = plt.subplots(figsize=(10, 6))
-        
         sc = ax.scatter(self.results['Volatilità'], self.results['Rendimento'], c=self.results['Sharpe'], cmap='viridis', s=15, alpha=0.5)
-        
         cbar = plt.colorbar(sc)
         cbar.set_label('Sharpe Ratio', rotation=270, labelpad=20, fontsize=10)
         cbar.outline.set_visible(False)
-        
         ax.scatter(max_pt['Volatilità'], max_pt['Rendimento'], c='#d62728', s=200, marker='*', label='Max Sharpe', edgecolors='black')
         ax.scatter(min_pt['Volatilità'], min_pt['Rendimento'], c='#1f77b4', s=200, marker='*', label='Min Vol', edgecolors='black')
-        
         ax.set_title("Frontiera Efficiente (Markowitz)", fontweight='bold', pad=15)
         ax.set_xlabel("Volatilità (Rischio Annualizzato)")
         ax.set_ylabel("Rendimento Atteso (Annualizzato)")
@@ -391,7 +355,6 @@ def main():
     st.markdown("Analisi finanziaria automatizzata sui top player del mercato italiano.")
     st.markdown("---")
     
-    # Session State
     if 'opt_done' not in st.session_state:
         st.session_state.opt_done = False
         st.session_state.opt_max = None
@@ -425,7 +388,6 @@ def main():
             st.error("Dati insufficienti per i calcoli.")
             return
 
-        # Calcolo metriche
         t1 = an.get_table_1_central_metrics()
         t2 = an.get_table_2_risk_extremes()
         t3 = an.get_table_3_non_normality()
@@ -433,27 +395,34 @@ def main():
         
         viz = Visualizer(df_stocks, rets, bench, non_norm_metrics=t3)
 
-        tab1, tab2, tab3 = st.tabs(["📊 Statistiche Avanzate", "📈 Analisi Grafica", "🧠 Frontiera Efficiente"])
+        # TAB
+        tab1, tab2, tab3 = st.tabs(["Statistiche Avanzate", "Analisi Grafica", "Frontiera Efficiente"])
 
-        # --- TAB 1: TABELLE DATI (STILE PULITO, NO COLORI CELLE) ---
+        # --- TAB 1: TABELLE CON CELLE GRIGIO CHIARO ---
         with tab1:
+            # Funzione helper per stile celle grigio chiaro
+            def style_gray_cells(styler):
+                return styler.set_properties(**{
+                    'background-color': '#f4f4f4',  # Grigio chiaro richiesto
+                    'color': '#484848',             # Testo scuro
+                    'border-color': '#ffffff'       # Bordo bianco tra le celle
+                })
+
             st.subheader("1. Performance e Volatilità")
-            # Niente applymap o background_gradient, solo formattazione numeri
-            st.dataframe(t1.style.format("{:.2%}", subset=['Media Geom. (Ann)', 'Media Giorn.', 'Dev.Std', 'Varianza']))
+            st.dataframe(style_gray_cells(t1.style.format("{:.2%}", subset=['Media Geom. (Ann)', 'Media Giorn.', 'Dev.Std', 'Varianza'])))
 
             st.subheader("2. Analisi del Rischio")
-            st.dataframe(t2.style.format("{:.2%}", subset=['Min', 'Max', 'Range', 'Max Drawdown'])
-                         .format("{:.4f}", subset=['Cov. Mkt', 'Corr. Mkt']))
+            st.dataframe(style_gray_cells(t2.style.format("{:.2%}", subset=['Min', 'Max', 'Range', 'Max Drawdown'])
+                         .format("{:.4f}", subset=['Cov. Mkt', 'Corr. Mkt'])))
 
             c1, c2 = st.columns(2)
             with c1: 
                 st.subheader("3. Asimmetria e Curtosi")
-                st.dataframe(t3.style.format("{:.4f}"))
+                st.dataframe(style_gray_cells(t3.style.format("{:.4f}")))
             with c2: 
                 st.subheader("4. Test di Normalità (Jarque-Bera)")
-                st.dataframe(t_jb.style.format({"p-value": "{:.4f}"}))
+                st.dataframe(style_gray_cells(t_jb.style.format({"p-value": "{:.4f}"})))
 
-        # --- TAB 2: GRAFICI ---
         with tab2:
             col1, col2 = st.columns(2)
             with col1:
@@ -469,7 +438,6 @@ def main():
                 st.write("**Distribuzioni**")
                 st.pyplot(viz.plot_histogram_grid())
 
-        # --- TAB 3: OTTIMIZZAZIONE ---
         with tab3:
             st.markdown("### Ottimizzazione di Portafoglio (Markowitz)")
             st.caption("Simulazione Monte Carlo su 3000 portafogli casuali.")
@@ -513,12 +481,15 @@ def main():
                     df_w_max = make_weight_df(w_max, rets.columns)
                     df_w_min = make_weight_df(w_min, rets.columns)
                     
+                    # Funzione helper per celle grigie anche qui
+                    def style_gray_cells_alloc(styler):
+                        return styler.set_properties(**{'background-color': '#f4f4f4', 'color': '#484848'})
+
                     t1, t2 = st.tabs(["Max Sharpe", "Min Volatility"])
-                    # Tabelle pulite anche qui, niente gradienti
                     with t1:
-                        st.dataframe(df_w_max.style.format("{:.2%}"))
+                        st.dataframe(style_gray_cells_alloc(df_w_max.style.format("{:.2%}")))
                     with t2:
-                        st.dataframe(df_w_min.style.format("{:.2%}"))
+                        st.dataframe(style_gray_cells_alloc(df_w_min.style.format("{:.2%}")))
             else:
                 st.info("Clicca sul pulsante per avviare la simulazione.")
     else:
