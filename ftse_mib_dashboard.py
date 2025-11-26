@@ -81,7 +81,7 @@ st.markdown("""
         gap: 0px;
     }
 
-    /* 6. STILE PULSANTI STANDARD (Avvia Ottimizzazione & Aggiorna) */
+    /* 6. STILE PULSANTI STANDARD */
     div.stButton > button {
         background-color: #e0e0e0;
         color: #484848;
@@ -367,7 +367,6 @@ class Visualizer:
 # CLASSE 4: PORTFOLIO OPTIMIZER
 # =============================================================================
 class PortfolioOptimizer:
-    # MODIFICA: 5000 simulazioni
     def __init__(self, returns_df, num_portfolios=5000):
         self.ret = returns_df
         self.n = num_portfolios
@@ -423,7 +422,7 @@ class PortfolioOptimizer:
 # MAIN FUNCTION
 # =============================================================================
 def main():
-    # --- HEADER: TITOLO (SX) E PULSANTE UPDATE (DX) ---
+    # --- HEADER ---
     col_title, col_btn = st.columns([5, 1])
     
     with col_title:
@@ -435,7 +434,7 @@ def main():
         """, unsafe_allow_html=True)
     
     with col_btn:
-        st.write("") # Spaziatura per allineare
+        st.write("") 
         st.write("") 
         if st.button("🔄 Aggiorna Dati"):
             st.cache_data.clear()
@@ -481,20 +480,19 @@ def main():
         
         viz = Visualizer(df_stocks, rets, bench, non_norm_metrics=t3)
 
-        # TAB
         tab1, tab2, tab3 = st.tabs(["Statistiche Avanzate", "Analisi Grafica", "Frontiera Efficiente"])
 
-        # Funzione helper per stile celle FINALE
+        # Funzione helper per stile celle e Header scuro
         def style_final_table(styler):
             styler.set_properties(**{
-                'background-color': '#e0e0e0',  # Grigio scuro
-                'color': '#2c2c2c',             # Testo scuro
-                'border-color': '#ffffff'       # Bordo bianco
+                'background-color': '#e0e0e0',  # Sfondo Celle Grigio
+                'color': '#2c2c2c',             # Testo Celle Scuro
+                'border-color': '#ffffff'       # Bordo
             })
             styler.set_table_styles([
                 {'selector': 'th', 'props': [
-                    ('background-color', '#cccccc'), 
-                    ('color', '#000000'), 
+                    ('background-color', '#333333'), # HEADER GRIGIO SCURO
+                    ('color', '#ffffff'),            # TESTO HEADER BIANCO
                     ('font-weight', 'bold'),
                     ('border', '1px solid white')
                 ]}
@@ -577,7 +575,8 @@ def main():
                     
                     def make_weight_df(weights, tickers):
                         df_w = pd.DataFrame({'Ticker': tickers, 'Peso': weights})
-                        df_w = df_w[df_w['Peso'] > 0.01].sort_values('Peso', ascending=False)
+                        # FIX: Filtro bassissimo per mostrare 100% totale ma nascondere zeri assoluti
+                        df_w = df_w[df_w['Peso'] > 0.0001].sort_values('Peso', ascending=False)
                         return df_w
 
                     df_w_max = make_weight_df(w_max, rets.columns)
