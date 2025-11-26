@@ -8,18 +8,18 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from scipy import stats
 
-# --- CONFIGURAZIONE PAGINA E TEMA ---
+# --- CONFIGURAZIONE PAGINA ---
 st.set_page_config(page_title="FTSE MIB Dashboard", layout="wide", page_icon="📈")
 
-# CUSTOM CSS: STILE BIANCO PANNA, MINIMAL E TAB A PULSANTE
+# --- CUSTOM CSS AVANZATO ---
 st.markdown("""
 <style>
-    /* Importa font moderno Roboto */
+    /* Importa font */
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
     
-    /* 1. SFONDO BIANCO PANNA PER TUTTA L'APP */
+    /* 1. SFONDO GENERALE */
     .stApp {
-        background-color: #FDFBF7;
+        background-color: #FDFBF7; /* Bianco panna */
     }
     
     /* 2. TESTI */
@@ -28,53 +28,79 @@ st.markdown("""
         color: #484848 !important;
     }
     
-    /* 3. TRASFORMAZIONE TAB IN PULSANTI */
-    /* Stile base del bottone (Tab inattivo) */
+    /* 3. STILE PULSANTI TAB (SCHEDE) */
+    /* Bottone Inattivo */
     button[data-baseweb="tab"] {
-        background-color: #e0e0e0; /* Grigio chiaro pulsante */
-        border-radius: 8px; /* Angoli arrotondati */
-        border: none;
+        background-color: #e0e0e0; 
+        border: 1px solid #d1d1d1;
+        border-radius: 6px;
         color: #484848;
-        font-weight: 600;
-        margin-right: 8px; /* Spazio tra i pulsanti */
+        margin-right: 5px;
         padding: 8px 16px;
-        transition: all 0.3s ease;
     }
     
-    /* Stile bottone attivo (Tab selezionato) */
+    /* Bottone Attivo (NON DIVENTA NERO, solo più scuro il bordo/testo) */
     button[data-baseweb="tab"][aria-selected="true"] {
-        background-color: #484848 !important; /* Grigio scuro attivo */
-        color: white !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        background-color: #d6d6d6 !important; /* Grigio leggermente più scuro */
+        border: 1px solid #999 !important;
+        color: #000000 !important;
+        font-weight: 900 !important; /* Grassetto per evidenziare */
     }
     
-    /* Rimuove la linea rossa/sottolineatura di default di Streamlit */
+    /* Rimuove decorazioni extra dei tab */
     div[data-testid="stTabs"] > div > div {
         box-shadow: none !important;
         border-bottom: none !important;
         gap: 0px;
     }
 
-    /* 4. TABELLE */
+    /* 4. STILE PULSANTE "AVVIA OTTIMIZZAZIONE" */
+    div.stButton > button {
+        background-color: #e0e0e0;
+        color: #484848;
+        border: 1px solid #b0b0b0;
+        border-radius: 5px;
+        font-weight: 600;
+    }
+    /* Evita che diventi nero al click/focus */
+    div.stButton > button:focus, div.stButton > button:active {
+        background-color: #d0d0d0 !important;
+        color: #000000 !important;
+        border-color: #808080 !important;
+        box-shadow: none !important;
+    }
+    div.stButton > button:hover {
+        border-color: #484848;
+        color: #000000;
+    }
+
+    /* 5. TABELLE E SELEZIONE CELLE */
     .stDataFrame {
         border: 1px solid #dcdcdc;
         border-radius: 5px;
     }
     
-    /* 5. METRICHE */
+    /* Hack per rendere la selezione meno scura (migliora leggibilità) */
+    /* Tenta di sovrascrivere il colore di selezione del tema */
+    [data-testid="stDataFrame"] table {
+        --ag-selected-row-background-color: #d3e2f2 !important; /* Azzurrino chiaro invece di scuro */
+        --ag-row-hover-color: #f0f0f0 !important;
+    }
+
+    /* 6. METRICHE */
     [data-testid="stMetricValue"] {
         font-size: 1.8rem !important;
         color: #2c2c2c !important;
     }
     
-    /* Spaziature */
     .block-container {
         padding-top: 2rem;
         padding-bottom: 2rem;
     }
     
+    /* Colore barra progresso */
     .stProgress > div > div > div > div {
-        background-color: #484848;
+        background-color: #808080;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -84,12 +110,14 @@ sns.set_theme(style="ticks", context="talk")
 plt.rcParams['figure.figsize'] = (10, 6)
 plt.rcParams['figure.facecolor'] = '#FDFBF7' 
 plt.rcParams['axes.facecolor'] = '#FDFBF7'
-plt.rcParams['axes.spines.top'] = False
-plt.rcParams['axes.spines.right'] = False
 plt.rcParams['text.color'] = '#484848'
 plt.rcParams['axes.labelcolor'] = '#484848'
 plt.rcParams['xtick.color'] = '#484848'
 plt.rcParams['ytick.color'] = '#484848'
+
+# Bordo grafico (matplotlib params)
+plt.rcParams['axes.linewidth'] = 1
+plt.rcParams['axes.edgecolor'] = '#484848'
 
 # =============================================================================
 # CLASSE 1: DATA MANAGER
@@ -243,6 +271,12 @@ class Visualizer:
         self.prices, self.returns, self.bench = prices, returns, benchmark
         self.non_norm_metrics = non_norm_metrics
 
+    # Helper per aggiungere contorno ai grafici
+    def _add_border(self, fig):
+        fig.patch.set_linewidth(1.5)
+        fig.patch.set_edgecolor('#cccccc') # Contorno grigio visibile
+        return fig
+
     def plot_normalized_prices(self):
         norm = (self.prices / self.prices.iloc[0]) * 100
         fig, ax = plt.subplots(figsize=(10, 6))
@@ -257,7 +291,7 @@ class Visualizer:
         ax.grid(True, linestyle=':', alpha=0.4)
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', frameon=False)
         plt.tight_layout()
-        return fig
+        return self._add_border(fig)
 
     def plot_returns_boxplot(self):
         fig, ax = plt.subplots(figsize=(10, 6))
@@ -266,7 +300,7 @@ class Visualizer:
         ax.grid(True, axis='y', linestyle=':', alpha=0.4)
         plt.xticks(rotation=45)
         plt.tight_layout()
-        return fig
+        return self._add_border(fig)
 
     def plot_histogram_grid(self):
         df_combined = self.returns.copy()
@@ -286,6 +320,10 @@ class Visualizer:
         g.fig.legend(handles=legend_elements, loc='lower right', fontsize=9, bbox_to_anchor=(0.95, 0.05), frameon=False)
         plt.subplots_adjust(top=0.9)
         g.fig.suptitle('Distribuzione Rendimenti', fontweight='bold', y=0.98)
+        
+        # Aggiunta bordo manuale alla figura FacetGrid
+        g.fig.patch.set_linewidth(1.5)
+        g.fig.patch.set_edgecolor('#cccccc')
         return g.fig
 
     def plot_correlation_heatmap(self):
@@ -293,7 +331,7 @@ class Visualizer:
         sns.heatmap(self.returns.corr(), annot=True, cmap='vlag', center=0, fmt=".2f", 
                     ax=ax, cbar_kws={'label': 'Correlazione'}, linewidths=0.5, linecolor='white')
         ax.set_title("Matrice di Correlazione", fontweight='bold', pad=15)
-        return fig
+        return self._add_border(fig)
 
 # =============================================================================
 # CLASSE 4: PORTFOLIO OPTIMIZER
@@ -345,6 +383,10 @@ class PortfolioOptimizer:
         ax.set_ylabel("Rendimento Atteso (Annualizzato)")
         ax.grid(True, linestyle=':', alpha=0.4)
         ax.legend(frameon=True, facecolor='white', framealpha=0.9)
+        
+        # Aggiunta bordo
+        fig.patch.set_linewidth(1.5)
+        fig.patch.set_edgecolor('#cccccc')
         return fig
 
 # =============================================================================
@@ -398,31 +440,32 @@ def main():
         # TAB
         tab1, tab2, tab3 = st.tabs(["Statistiche Avanzate", "Analisi Grafica", "Frontiera Efficiente"])
 
-        # --- TAB 1: TABELLE CON CELLE GRIGIO CHIARO ---
-        with tab1:
-            # Funzione helper per stile celle grigio chiaro
-            def style_gray_cells(styler):
-                return styler.set_properties(**{
-                    'background-color': '#f4f4f4',  # Grigio chiaro richiesto
-                    'color': '#484848',             # Testo scuro
-                    'border-color': '#ffffff'       # Bordo bianco tra le celle
-                })
+        # Funzione helper per stile celle PIU' SCURO (#e0e0e0) e testo leggibile
+        def style_darker_gray_cells(styler):
+            return styler.set_properties(**{
+                'background-color': '#e0e0e0',  # Grigio più scuro per distinguersi
+                'color': '#2c2c2c',             # Testo scuro
+                'border-color': '#ffffff'       # Bordo bianco
+            })
 
+        # --- TAB 1: TABELLE ---
+        with tab1:
             st.subheader("1. Performance e Volatilità")
-            st.dataframe(style_gray_cells(t1.style.format("{:.2%}", subset=['Media Geom. (Ann)', 'Media Giorn.', 'Dev.Std', 'Varianza'])))
+            st.dataframe(style_darker_gray_cells(t1.style.format("{:.2%}", subset=['Media Geom. (Ann)', 'Media Giorn.', 'Dev.Std', 'Varianza'])), use_container_width=True)
 
             st.subheader("2. Analisi del Rischio")
-            st.dataframe(style_gray_cells(t2.style.format("{:.2%}", subset=['Min', 'Max', 'Range', 'Max Drawdown'])
-                         .format("{:.4f}", subset=['Cov. Mkt', 'Corr. Mkt'])))
+            st.dataframe(style_darker_gray_cells(t2.style.format("{:.2%}", subset=['Min', 'Max', 'Range', 'Max Drawdown'])
+                         .format("{:.4f}", subset=['Cov. Mkt', 'Corr. Mkt'])), use_container_width=True)
 
             c1, c2 = st.columns(2)
             with c1: 
                 st.subheader("3. Asimmetria e Curtosi")
-                st.dataframe(style_gray_cells(t3.style.format("{:.4f}")))
+                st.dataframe(style_darker_gray_cells(t3.style.format("{:.4f}")), use_container_width=True)
             with c2: 
                 st.subheader("4. Test di Normalità (Jarque-Bera)")
-                st.dataframe(style_gray_cells(t_jb.style.format({"p-value": "{:.4f}"})))
+                st.dataframe(style_darker_gray_cells(t_jb.style.format({"p-value": "{:.4f}"})), use_container_width=True)
 
+        # --- TAB 2: GRAFICI CON BORDO ---
         with tab2:
             col1, col2 = st.columns(2)
             with col1:
@@ -438,10 +481,12 @@ def main():
                 st.write("**Distribuzioni**")
                 st.pyplot(viz.plot_histogram_grid())
 
+        # --- TAB 3: OTTIMIZZAZIONE ---
         with tab3:
             st.markdown("### Ottimizzazione di Portafoglio (Markowitz)")
             st.caption("Simulazione Monte Carlo su 3000 portafogli casuali.")
             
+            # Pulsante che non diventa nero (gestito da CSS)
             if st.button("🚀 Avvia Ottimizzazione"):
                 opt = PortfolioOptimizer(rets)
                 res_max, res_min, w_max, w_min = opt.simulate()
@@ -475,21 +520,39 @@ def main():
                     def make_weight_df(weights, tickers):
                         df_w = pd.DataFrame({'Ticker': tickers, 'Peso': weights})
                         df_w = df_w[df_w['Peso'] > 0.01].sort_values('Peso', ascending=False)
-                        df_w.set_index('Ticker', inplace=True)
+                        # Reimposta l'indice per avere Ticker come colonna, utile per column_config
                         return df_w
 
                     df_w_max = make_weight_df(w_max, rets.columns)
                     df_w_min = make_weight_df(w_min, rets.columns)
-                    
-                    # Funzione helper per celle grigie anche qui
-                    def style_gray_cells_alloc(styler):
-                        return styler.set_properties(**{'background-color': '#f4f4f4', 'color': '#484848'})
 
                     t1, t2 = st.tabs(["Max Sharpe", "Min Volatility"])
+                    
+                    # Configurazione colonne per larghezza "Peso"
+                    col_config = {
+                        "Ticker": st.column_config.TextColumn("Ticker", width="medium"),
+                        "Peso": st.column_config.NumberColumn(
+                            "Peso (%)",
+                            format="%.2f%%", # Formato percentuale
+                            width="small"    # Larghezza ridotta
+                        )
+                    }
+
                     with t1:
-                        st.dataframe(style_gray_cells_alloc(df_w_max.style.format("{:.2%}")))
+                        # Tabella con celle grigie anche qui
+                        st.dataframe(
+                            style_darker_gray_cells(df_w_max.style),
+                            column_config=col_config,
+                            use_container_width=True,
+                            hide_index=True 
+                        )
                     with t2:
-                        st.dataframe(style_gray_cells_alloc(df_w_min.style.format("{:.2%}")))
+                        st.dataframe(
+                            style_darker_gray_cells(df_w_min.style),
+                            column_config=col_config,
+                            use_container_width=True,
+                            hide_index=True
+                        )
             else:
                 st.info("Clicca sul pulsante per avviare la simulazione.")
     else:
