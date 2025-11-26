@@ -17,9 +17,9 @@ st.markdown("""
     /* Importa font */
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
     
-    /* 1. SFONDO GENERALE */
+    /* 1. SFONDO GENERALE GIALLO CHIARO */
     .stApp {
-        background-color: #FDFBF7; /* Bianco panna */
+        background-color: #FFFDE7; /* Giallo chiaro pastello */
     }
     
     /* 2. TESTI GLOBALI */
@@ -106,6 +106,7 @@ st.markdown("""
         border: 1px solid #dcdcdc;
         border-radius: 5px;
     }
+    /* Selezione cella più chiara */
     [data-testid="stDataFrame"] table {
         --ag-selected-row-background-color: #d3e2f2 !important;
         --ag-row-hover-color: #f0f0f0 !important;
@@ -128,7 +129,7 @@ st.markdown("""
         background-color: #808080;
     }
     
-    /* LINEA DIVISORIA PERSONALIZZATA */
+    /* LINEA DIVISORIA */
     hr.custom-divider {
         margin-top: 0px;
         margin-bottom: 25px;
@@ -141,8 +142,9 @@ st.markdown("""
 # Impostazioni grafici globali
 sns.set_theme(style="ticks", context="talk")
 plt.rcParams['figure.figsize'] = (10, 6)
-plt.rcParams['figure.facecolor'] = '#FDFBF7' 
-plt.rcParams['axes.facecolor'] = '#FDFBF7'
+# Sfondo grafici deve matchare lo sfondo giallo chiaro per sembrare trasparente
+plt.rcParams['figure.facecolor'] = '#FFFDE7' 
+plt.rcParams['axes.facecolor'] = '#FFFDE7'
 plt.rcParams['text.color'] = '#484848'
 plt.rcParams['axes.labelcolor'] = '#484848'
 plt.rcParams['xtick.color'] = '#484848'
@@ -485,7 +487,7 @@ def main():
         # Funzione helper per stile celle e Header scuro
         def style_final_table(styler):
             styler.set_properties(**{
-                'background-color': '#e0e0e0',  # Sfondo Celle Grigio
+                'background-color': '#e0e0e0',  # Sfondo Celle Grigio Chiaro
                 'color': '#2c2c2c',             # Testo Celle Scuro
                 'border-color': '#ffffff'       # Bordo
             })
@@ -574,9 +576,9 @@ def main():
                     st.write("### 🏗️ Allocazione")
                     
                     def make_weight_df(weights, tickers):
-                        df_w = pd.DataFrame({'Ticker': tickers, 'Peso': weights})
-                        # FIX: Filtro bassissimo per mostrare 100% totale ma nascondere zeri assoluti
-                        df_w = df_w[df_w['Peso'] > 0.0001].sort_values('Peso', ascending=False)
+                        # MOLTIPLICO X 100 PER AVERE 25.0 NON 0.25
+                        df_w = pd.DataFrame({'Ticker': tickers, 'Peso': weights * 100})
+                        df_w = df_w.sort_values('Peso', ascending=False)
                         return df_w
 
                     df_w_max = make_weight_df(w_max, rets.columns)
@@ -584,9 +586,14 @@ def main():
 
                     t1, t2 = st.tabs(["Max Sharpe", "Min Volatility"])
                     
+                    # CONFIGURAZIONE COLONNA NUMERICA
                     col_config = {
                         "Ticker": st.column_config.TextColumn("Ticker"),
-                        "Peso": st.column_config.NumberColumn("Peso (%)", format="%.2f%%", width="small")
+                        "Peso": st.column_config.NumberColumn(
+                            "Peso (%)", 
+                            format="%.2f%%", # Visualizza 2 decimali + %
+                            width="small"
+                        )
                     }
 
                     with t1:
