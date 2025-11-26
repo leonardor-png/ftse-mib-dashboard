@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 from scipy import stats
 
 # --- CONFIGURAZIONE PAGINA ---
@@ -175,7 +177,6 @@ class Visualizer:
 
     def plot_normalized_prices(self):
         norm = (self.prices / self.prices.iloc[0]) * 100
-        # SIZE FISSO PER TUTTI
         fig, ax = plt.subplots(figsize=(10, 6))
         colors = sns.color_palette("husl", len(norm.columns))
         for i, c in enumerate(norm.columns):
@@ -189,7 +190,6 @@ class Visualizer:
         return fig
 
     def plot_returns_boxplot(self):
-        # SIZE DI RIFERIMENTO
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.boxplot(data=self.returns, ax=ax, palette="vlag")
         ax.set_title("Dispersione Rendimenti", fontweight='bold')
@@ -204,17 +204,29 @@ class Visualizer:
         df_combined = df_combined.dropna()
         melt = df_combined.melt(var_name='Ticker', value_name='Rendimento')
         
-        # FacetGrid size calibrato per essere simile a 10x6 complessivamente
+        # FacetGrid con layout ottimizzato
         g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=2.0, aspect=1.5)
         g.map_dataframe(sns.histplot, x="Rendimento", kde=True, color="skyblue")
         g.set_titles("{col_name}")
+        
+        # Rimuove le etichette degli assi
+        g.set_axis_labels("", "")
+        
+        # Aggiunta Legenda Manuale in basso a destra
+        legend_elements = [
+            Patch(facecolor='skyblue', edgecolor='none', label='Frequenza'),
+            Line2D([0], [0], color='skyblue', lw=2, label='Densità (KDE)')
+        ]
+        g.fig.legend(handles=legend_elements, loc='lower right', fontsize=10, bbox_to_anchor=(0.98, 0.02))
+
         plt.subplots_adjust(top=0.9)
         g.fig.suptitle('Distribuzione Rendimenti', fontweight='bold')
         return g.fig
 
     def plot_correlation_heatmap(self):
         fig, ax = plt.subplots(figsize=(10, 6))
-        sns.heatmap(self.returns.corr(), annot=True, cmap='coolwarm', fmt=".2f", ax=ax)
+        # Heatmap con cbar annotata
+        sns.heatmap(self.returns.corr(), annot=True, cmap='coolwarm', fmt=".2f", ax=ax, cbar_kws={'label': 'Correlazione'})
         ax.set_title("Correlazioni", fontweight='bold')
         return fig
 
@@ -246,9 +258,14 @@ class PortfolioOptimizer:
         return max_sharpe, min_vol
 
     def plot_efficient_frontier(self, max_pt, min_pt):
+        # SIZE FISSO: 10x6 (uguale agli altri)
         fig, ax = plt.subplots(figsize=(10, 6))
         sc = ax.scatter(self.results['Volatilità'], self.results['Rendimento'], c=self.results['Sharpe'], cmap='viridis', s=10, alpha=0.6)
-        plt.colorbar(sc, label='Sharpe')
+        
+        # Aggiunta label Sharpe Ratio
+        cbar = plt.colorbar(sc)
+        cbar.set_label('Sharpe Ratio', rotation=270, labelpad=20, fontsize=11, fontweight='bold')
+        
         ax.scatter(max_pt['Volatilità'], max_pt['Rendimento'], c='red', s=150, marker='*', label='Max Sharpe')
         ax.scatter(min_pt['Volatilità'], min_pt['Rendimento'], c='blue', s=150, marker='*', label='Min Vol')
         ax.set_title("Frontiera Efficiente", fontweight='bold')
@@ -261,6 +278,13 @@ class PortfolioOptimizer:
 def main():
     st.title("🇮🇹 FTSE MIB Top 10 Dashboard")
     
+    # Inizializza Session State per Ottimizzazione
+    if 'opt_done' not in st.session_state:
+        st.session_state.opt_done = False
+        st.session_state.opt_max = None
+        st.session_state.opt_min = None
+        st.session_state.opt_obj = None
+
     @st.cache_data(ttl=3600)
     def get_market_data():
         dm = DataManager()
@@ -309,7 +333,6 @@ def main():
                 st.dataframe(t_jb)
 
         with tab2:
-            # LAYOUT A GRIGLIA 2x2 PER AVERE GRAFICI DELLA STESSA DIMENSIONE
             col1, col2 = st.columns(2)
             
             with col1:
@@ -327,13 +350,27 @@ def main():
                 st.pyplot(viz.plot_histogram_grid())
 
         with tab3:
+            # Pulsante che attiva il calcolo e salva in session_state
             if st.button("Avvia Ottimizzazione"):
                 opt = PortfolioOptimizer(rets)
-                max_pt, min_pt = opt.simulate()
+                st.session_state.opt_max, st.session_state.opt_min = opt.simulate()
+                st.session_state.opt_obj = opt
+                st.session_state.opt_done = True
+            
+            # Se il calcolo è stato fatto (anche prima), mostra i risultati
+            if st.session_state.opt_done:
                 c1, c2 = st.columns(2)
+                max_pt = st.session_state.opt_max
+                min_pt = st.session_state.opt_min
+                opt_obj = st.session_state.opt_obj
+                
                 c1.metric("Max Sharpe", f"{max_pt['Rendimento']:.2%}")
                 c2.metric("Min Volatility", f"{min_pt['Rendimento']:.2%}")
-                st.pyplot(opt.plot_efficient_frontier(max_pt, min_pt))
+                
+                # Plot con dimensioni corrette (10x6)
+                st.pyplot(opt_obj.plot_efficient_frontier(max_pt, min_pt))
+            else:
+                st.info("Clicca sul pulsante per avviare la simulazione Monte Carlo.")
     else:
         st.error("Errore download dati.")
 
