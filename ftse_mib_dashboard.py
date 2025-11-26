@@ -105,11 +105,11 @@ st.markdown("""
     .stDataFrame {
         border: 1px solid #dcdcdc;
         border-radius: 5px;
-        background-color: #E3F2FD; /* Background di base del container tabella */
+        background-color: #eeeeee; /* Background base grigio chiaro */
     }
     [data-testid="stDataFrame"] table {
-        --ag-selected-row-background-color: #BBDEFB !important; /* Selezione Azzurra */
-        --ag-row-hover-color: #E3F2FD !important;
+        --ag-selected-row-background-color: #d3e2f2 !important;
+        --ag-row-hover-color: #e0e0e0 !important;
     }
 
     /* 8. METRICHE STANDARD */
@@ -139,14 +139,14 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- IMPOSTAZIONI GRAFICI GLOBALI (MODIFICATO) ---
+# --- IMPOSTAZIONI GRAFICI GLOBALI ---
 sns.set_theme(style="ticks", context="talk")
 plt.rcParams['figure.figsize'] = (10, 6)
 
-# SFONDO ESTERNO AL GRAFICO (Uguale alla pagina)
+# SFONDO ESTERNO AL GRAFICO (Giallo chiaro)
 plt.rcParams['figure.facecolor'] = '#FFFDE7' 
 
-# SFONDO INTERNO AL GRAFICO (Bianco come richiesto)
+# SFONDO INTERNO AL GRAFICO (Bianco puro)
 plt.rcParams['axes.facecolor'] = '#FFFFFF'
 
 plt.rcParams['text.color'] = '#484848'
@@ -485,17 +485,17 @@ def main():
 
         tab1, tab2, tab3 = st.tabs(["Statistiche Avanzate", "Analisi Grafica", "Frontiera Efficiente"])
 
-        # --- STILE TABELLA AZZURRO ---
+        # --- STILE TABELLA: GRIGIO CHIARO E HEADER SCURO ---
         def style_final_table(styler):
             styler.set_properties(**{
-                'background-color': '#E3F2FD',  # Azzurro Chiaro per i dati
-                'color': '#2c2c2c',             # Testo Scuro
-                'border-color': '#ffffff'       # Bordo Bianco
+                'background-color': '#eeeeee',  # Celle Dati: Grigio Chiaro
+                'color': '#2c2c2c',             # Testo Dati: Scuro
+                'border-color': '#ffffff'       # Bordo: Bianco
             })
             styler.set_table_styles([
                 {'selector': 'th', 'props': [
-                    ('background-color', '#1565C0'), # Azzurro Scuro per Header (Righe/Colonne)
-                    ('color', '#ffffff'),            # Testo Header Bianco
+                    ('background-color', '#333333'), # Header (Righe/Col): Grigio Scuro
+                    ('color', '#ffffff'),            # Testo Header: Bianco
                     ('font-weight', 'bold'),
                     ('border', '1px solid white')
                 ]}
