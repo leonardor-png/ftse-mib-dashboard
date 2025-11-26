@@ -204,15 +204,11 @@ class Visualizer:
         df_combined = df_combined.dropna()
         melt = df_combined.melt(var_name='Ticker', value_name='Rendimento')
         
-        # FacetGrid con layout ottimizzato
         g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=2.0, aspect=1.5)
         g.map_dataframe(sns.histplot, x="Rendimento", kde=True, color="skyblue")
         g.set_titles("{col_name}")
-        
-        # Rimuove le etichette degli assi
         g.set_axis_labels("", "")
         
-        # Aggiunta Legenda Manuale in basso a destra
         legend_elements = [
             Patch(facecolor='skyblue', edgecolor='none', label='Frequenza'),
             Line2D([0], [0], color='skyblue', lw=2, label='Densità (KDE)')
@@ -225,7 +221,6 @@ class Visualizer:
 
     def plot_correlation_heatmap(self):
         fig, ax = plt.subplots(figsize=(10, 6))
-        # Heatmap con cbar annotata
         sns.heatmap(self.returns.corr(), annot=True, cmap='coolwarm', fmt=".2f", ax=ax, cbar_kws={'label': 'Correlazione'})
         ax.set_title("Correlazioni", fontweight='bold')
         return fig
@@ -238,6 +233,7 @@ class PortfolioOptimizer:
         self.ret = returns_df
         self.n = num_portfolios
         self.results = None
+        self.weights = [] # Store weights
 
     def simulate(self):
         np.random.seed(42)
@@ -245,24 +241,37 @@ class PortfolioOptimizer:
         cov_matrix = self.ret.cov()
         n_assets = len(self.ret.columns)
         results_list = []
+        weights_list = [] # Store weights for each simulation
+
         for _ in range(self.n):
             w = np.random.random(n_assets)
             w /= np.sum(w)
+            
             ret_ann = np.sum(mean_daily * w) * 252
             vol_ann = np.sqrt(np.dot(w.T, np.dot(cov_matrix, w))) * np.sqrt(252)
             sharpe = ret_ann / vol_ann if vol_ann > 0 else 0
+            
             results_list.append([ret_ann, vol_ann, sharpe])
+            weights_list.append(w)
+            
         self.results = pd.DataFrame(results_list, columns=['Rendimento', 'Volatilità', 'Sharpe'])
-        max_sharpe = self.results.iloc[self.results['Sharpe'].idxmax()]
-        min_vol = self.results.iloc[self.results['Volatilità'].idxmin()]
-        return max_sharpe, min_vol
+        self.weights = np.array(weights_list)
+        
+        # Identify best portfolios
+        max_sharpe_idx = self.results['Sharpe'].idxmax()
+        min_vol_idx = self.results['Volatilità'].idxmin()
+        
+        max_sharpe_pt = self.results.iloc[max_sharpe_idx]
+        min_vol_pt = self.results.iloc[min_vol_idx]
+        
+        max_w = self.weights[max_sharpe_idx]
+        min_w = self.weights[min_vol_idx]
+        
+        return max_sharpe_pt, min_vol_pt, max_w, min_w
 
     def plot_efficient_frontier(self, max_pt, min_pt):
-        # SIZE FISSO: 10x6
         fig, ax = plt.subplots(figsize=(10, 6))
         sc = ax.scatter(self.results['Volatilità'], self.results['Rendimento'], c=self.results['Sharpe'], cmap='viridis', s=10, alpha=0.6)
-        
-        # Aggiunta label Sharpe Ratio
         cbar = plt.colorbar(sc)
         cbar.set_label('Sharpe Ratio', rotation=270, labelpad=20, fontsize=11, fontweight='bold')
         
@@ -278,11 +287,13 @@ class PortfolioOptimizer:
 def main():
     st.title("🇮🇹 FTSE MIB Top 10 Dashboard")
     
-    # Inizializza Session State per Ottimizzazione
+    # Inizializza Session State
     if 'opt_done' not in st.session_state:
         st.session_state.opt_done = False
         st.session_state.opt_max = None
         st.session_state.opt_min = None
+        st.session_state.opt_w_max = None
+        st.session_state.opt_w_min = None
         st.session_state.opt_obj = None
 
     @st.cache_data(ttl=3600)
@@ -317,7 +328,8 @@ def main():
         
         viz = Visualizer(df_stocks, rets, bench, non_norm_metrics=t3)
 
-        tab1, tab2, tab3 = st.tabs(["📊 Statistiche", "📈 Grafici", "🧠 Ottimizzazione"])
+        # TAB RINOMINATA QUI
+        tab1, tab2, tab3 = st.tabs(["📊 Statistiche", "📈 Grafici", "🧠 Frontiera Efficiente"])
 
         with tab1:
             st.subheader("Metriche di Rendimento")
@@ -334,44 +346,69 @@ def main():
 
         with tab2:
             col1, col2 = st.columns(2)
-            
             with col1:
                 st.write("**Performance Relativa**")
                 st.pyplot(viz.plot_normalized_prices())
-                
                 st.write("**Dispersione (Rischio)**")
                 st.pyplot(viz.plot_returns_boxplot())
-                
             with col2:
                 st.write("**Correlazioni**")
                 st.pyplot(viz.plot_correlation_heatmap())
-                
                 st.write("**Distribuzioni**")
                 st.pyplot(viz.plot_histogram_grid())
 
         with tab3:
-            # Pulsante che attiva il calcolo e salva in session_state
             if st.button("Avvia Ottimizzazione"):
                 opt = PortfolioOptimizer(rets)
-                st.session_state.opt_max, st.session_state.opt_min = opt.simulate()
+                # Recupera anche i pesi
+                res_max, res_min, w_max, w_min = opt.simulate()
+                
+                st.session_state.opt_max = res_max
+                st.session_state.opt_min = res_min
+                st.session_state.opt_w_max = w_max
+                st.session_state.opt_w_min = w_min
                 st.session_state.opt_obj = opt
                 st.session_state.opt_done = True
             
-            # Se il calcolo è stato fatto (anche prima), mostra i risultati
             if st.session_state.opt_done:
-                c1, c2 = st.columns(2)
                 max_pt = st.session_state.opt_max
                 min_pt = st.session_state.opt_min
+                w_max = st.session_state.opt_w_max
+                w_min = st.session_state.opt_w_min
                 opt_obj = st.session_state.opt_obj
                 
-                c1.metric("Max Sharpe", f"{max_pt['Rendimento']:.2%}")
-                c2.metric("Min Volatility", f"{min_pt['Rendimento']:.2%}")
+                # Metrics in alto
+                c1, c2 = st.columns(2)
+                c1.metric("🚀 Max Sharpe", f"Rend: {max_pt['Rendimento']:.2%}", f"Vol: {max_pt['Volatilità']:.2%}")
+                c2.metric("🛡️ Min Volatility", f"Rend: {min_pt['Rendimento']:.2%}", f"Vol: {min_pt['Volatilità']:.2%}")
                 
-                # --- MODIFICA QUI ---
-                # Creiamo due colonne anche qui per forzare la dimensione al 50% della pagina
-                col_plot, col_void = st.columns(2)
+                # Layout Grafico (SX) e Composizione (DX)
+                col_plot, col_info = st.columns(2)
+                
                 with col_plot:
                     st.pyplot(opt_obj.plot_efficient_frontier(max_pt, min_pt))
+                
+                with col_info:
+                    st.write("### 🏗️ Composizione Portafogli")
+                    
+                    # Funzione helper per creare dataframe pesi
+                    def make_weight_df(weights, tickers):
+                        df_w = pd.DataFrame({'Ticker': tickers, 'Peso %': weights * 100})
+                        return df_w.sort_values('Peso %', ascending=False).set_index('Ticker')
+
+                    df_w_max = make_weight_df(w_max, rets.columns)
+                    df_w_min = make_weight_df(w_min, rets.columns)
+                    
+                    # Mostra solo titoli > 0.1% per pulizia
+                    df_w_max = df_w_max[df_w_max['Peso %'] > 0.1]
+                    df_w_min = df_w_min[df_w_min['Peso %'] > 0.1]
+                    
+                    t1, t2 = st.tabs(["Max Sharpe", "Min Volatility"])
+                    with t1:
+                        st.dataframe(df_w_max.style.format("{:.2f}%"))
+                    with t2:
+                        st.dataframe(df_w_min.style.format("{:.2f}%"))
+
             else:
                 st.info("Clicca sul pulsante per avviare la simulazione Monte Carlo.")
     else:
