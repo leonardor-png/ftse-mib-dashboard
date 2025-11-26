@@ -175,7 +175,8 @@ class Visualizer:
 
     def plot_normalized_prices(self):
         norm = (self.prices / self.prices.iloc[0]) * 100
-        fig, ax = plt.subplots(figsize=(10, 5))
+        # MODIFICA DIMENSIONE: Impostato a 10x6 per uniformità
+        fig, ax = plt.subplots(figsize=(10, 6))
         colors = sns.color_palette("husl", len(norm.columns))
         for i, c in enumerate(norm.columns):
             ax.plot(norm.index, norm[c], label=c, alpha=0.7, linewidth=1.5, color=colors[i])
@@ -188,6 +189,7 @@ class Visualizer:
         return fig
 
     def plot_returns_boxplot(self):
+        # DIMENSIONE DI RIFERIMENTO: 10x6
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.boxplot(data=self.returns, ax=ax, palette="vlag")
         ax.set_title("Dispersione Rendimenti", fontweight='bold')
@@ -201,7 +203,9 @@ class Visualizer:
              df_combined['FTSE MIB'] = self.bench.pct_change().dropna()
         df_combined = df_combined.dropna()
         melt = df_combined.melt(var_name='Ticker', value_name='Rendimento')
-        g = sns.FacetGrid(melt, col="Ticker", col_wrap=4, sharex=False, sharey=False, height=2.5, aspect=1.2)
+        
+        # MODIFICA DIMENSIONE: aspect=1 e height=2.5 su 4 colonne produce larghezza ~10
+        g = sns.FacetGrid(melt, col="Ticker", col_wrap=4, sharex=False, sharey=False, height=2.5, aspect=1.0)
         g.map_dataframe(sns.histplot, x="Rendimento", kde=True, color="skyblue")
         g.set_titles("{col_name}")
         plt.subplots_adjust(top=0.9)
@@ -209,7 +213,8 @@ class Visualizer:
         return g.fig
 
     def plot_correlation_heatmap(self):
-        fig, ax = plt.subplots(figsize=(8, 6))
+        # MODIFICA DIMENSIONE: Impostato a 10x6 per uniformità
+        fig, ax = plt.subplots(figsize=(10, 6))
         sns.heatmap(self.returns.corr(), annot=True, cmap='coolwarm', fmt=".2f", ax=ax)
         ax.set_title("Correlazioni", fontweight='bold')
         return fig
@@ -242,7 +247,8 @@ class PortfolioOptimizer:
         return max_sharpe, min_vol
 
     def plot_efficient_frontier(self, max_pt, min_pt):
-        fig, ax = plt.subplots(figsize=(8, 6))
+        # MODIFICA DIMENSIONE: Impostato a 10x6 per uniformità
+        fig, ax = plt.subplots(figsize=(10, 6))
         sc = ax.scatter(self.results['Volatilità'], self.results['Rendimento'], c=self.results['Sharpe'], cmap='viridis', s=10, alpha=0.6)
         plt.colorbar(sc, label='Sharpe')
         ax.scatter(max_pt['Volatilità'], max_pt['Rendimento'], c='red', s=150, marker='*', label='Max Sharpe')
@@ -252,7 +258,7 @@ class PortfolioOptimizer:
         return fig
 
 # =============================================================================
-# MAIN (NON INDENTARE QUESTA PARTE)
+# MAIN
 # =============================================================================
 def main():
     st.title("🇮🇹 FTSE MIB Top 10 Dashboard")
