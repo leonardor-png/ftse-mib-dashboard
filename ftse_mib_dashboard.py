@@ -258,7 +258,7 @@ class PortfolioOptimizer:
         return max_sharpe, min_vol
 
     def plot_efficient_frontier(self, max_pt, min_pt):
-        # SIZE FISSO: 10x6 (uguale agli altri)
+        # SIZE FISSO: 10x6
         fig, ax = plt.subplots(figsize=(10, 6))
         sc = ax.scatter(self.results['Volatilità'], self.results['Rendimento'], c=self.results['Sharpe'], cmap='viridis', s=10, alpha=0.6)
         
@@ -367,8 +367,11 @@ def main():
                 c1.metric("Max Sharpe", f"{max_pt['Rendimento']:.2%}")
                 c2.metric("Min Volatility", f"{min_pt['Rendimento']:.2%}")
                 
-                # Plot con dimensioni corrette (10x6)
-                st.pyplot(opt_obj.plot_efficient_frontier(max_pt, min_pt))
+                # --- MODIFICA QUI ---
+                # Creiamo due colonne anche qui per forzare la dimensione al 50% della pagina
+                col_plot, col_void = st.columns(2)
+                with col_plot:
+                    st.pyplot(opt_obj.plot_efficient_frontier(max_pt, min_pt))
             else:
                 st.info("Clicca sul pulsante per avviare la simulazione Monte Carlo.")
     else:
