@@ -105,11 +105,11 @@ st.markdown("""
     .stDataFrame {
         border: 1px solid #dcdcdc;
         border-radius: 5px;
+        background-color: #E3F2FD; /* Background di base del container tabella */
     }
-    /* Selezione cella più chiara */
     [data-testid="stDataFrame"] table {
-        --ag-selected-row-background-color: #d3e2f2 !important;
-        --ag-row-hover-color: #f0f0f0 !important;
+        --ag-selected-row-background-color: #BBDEFB !important; /* Selezione Azzurra */
+        --ag-row-hover-color: #E3F2FD !important;
     }
 
     /* 8. METRICHE STANDARD */
@@ -139,12 +139,16 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Impostazioni grafici globali
+# --- IMPOSTAZIONI GRAFICI GLOBALI (MODIFICATO) ---
 sns.set_theme(style="ticks", context="talk")
 plt.rcParams['figure.figsize'] = (10, 6)
-# Sfondo grafici deve matchare lo sfondo giallo chiaro per sembrare trasparente
+
+# SFONDO ESTERNO AL GRAFICO (Uguale alla pagina)
 plt.rcParams['figure.facecolor'] = '#FFFDE7' 
-plt.rcParams['axes.facecolor'] = '#FFFDE7'
+
+# SFONDO INTERNO AL GRAFICO (Bianco come richiesto)
+plt.rcParams['axes.facecolor'] = '#FFFFFF'
+
 plt.rcParams['text.color'] = '#484848'
 plt.rcParams['axes.labelcolor'] = '#484848'
 plt.rcParams['xtick.color'] = '#484848'
@@ -304,7 +308,6 @@ class Visualizer:
         self.prices, self.returns, self.bench = prices, returns, benchmark
         self.non_norm_metrics = non_norm_metrics
 
-    # Helper per aggiungere contorno ai grafici
     def _add_border(self, fig):
         fig.patch.set_linewidth(1.5)
         fig.patch.set_edgecolor('#cccccc')
@@ -353,7 +356,6 @@ class Visualizer:
         g.fig.legend(handles=legend_elements, loc='lower right', fontsize=9, bbox_to_anchor=(0.95, 0.05), frameon=False)
         plt.subplots_adjust(top=0.9)
         g.fig.suptitle('Distribuzione Rendimenti', fontweight='bold', y=0.98)
-        
         g.fig.patch.set_linewidth(1.5)
         g.fig.patch.set_edgecolor('#cccccc')
         return g.fig
@@ -415,7 +417,6 @@ class PortfolioOptimizer:
         ax.set_ylabel("Rendimento Atteso (Annualizzato)")
         ax.grid(True, linestyle=':', alpha=0.4)
         ax.legend(frameon=True, facecolor='white', framealpha=0.9)
-        
         fig.patch.set_linewidth(1.5)
         fig.patch.set_edgecolor('#cccccc')
         return fig
@@ -484,17 +485,17 @@ def main():
 
         tab1, tab2, tab3 = st.tabs(["Statistiche Avanzate", "Analisi Grafica", "Frontiera Efficiente"])
 
-        # Funzione helper per stile celle e Header scuro
+        # --- STILE TABELLA AZZURRO ---
         def style_final_table(styler):
             styler.set_properties(**{
-                'background-color': '#e0e0e0',  # Sfondo Celle Grigio Chiaro
-                'color': '#2c2c2c',             # Testo Celle Scuro
-                'border-color': '#ffffff'       # Bordo
+                'background-color': '#E3F2FD',  # Azzurro Chiaro per i dati
+                'color': '#2c2c2c',             # Testo Scuro
+                'border-color': '#ffffff'       # Bordo Bianco
             })
             styler.set_table_styles([
                 {'selector': 'th', 'props': [
-                    ('background-color', '#333333'), # HEADER GRIGIO SCURO
-                    ('color', '#ffffff'),            # TESTO HEADER BIANCO
+                    ('background-color', '#1565C0'), # Azzurro Scuro per Header (Righe/Colonne)
+                    ('color', '#ffffff'),            # Testo Header Bianco
                     ('font-weight', 'bold'),
                     ('border', '1px solid white')
                 ]}
@@ -576,9 +577,8 @@ def main():
                     st.write("### 🏗️ Allocazione")
                     
                     def make_weight_df(weights, tickers):
-                        # MOLTIPLICO X 100 PER AVERE 25.0 NON 0.25
                         df_w = pd.DataFrame({'Ticker': tickers, 'Peso': weights * 100})
-                        df_w = df_w.sort_values('Peso', ascending=False)
+                        df_w = df_w[df_w['Peso'] > 0.0001].sort_values('Peso', ascending=False)
                         return df_w
 
                     df_w_max = make_weight_df(w_max, rets.columns)
@@ -586,12 +586,11 @@ def main():
 
                     t1, t2 = st.tabs(["Max Sharpe", "Min Volatility"])
                     
-                    # CONFIGURAZIONE COLONNA NUMERICA
                     col_config = {
                         "Ticker": st.column_config.TextColumn("Ticker"),
                         "Peso": st.column_config.NumberColumn(
                             "Peso (%)", 
-                            format="%.2f%%", # Visualizza 2 decimali + %
+                            format="%.2f%%",
                             width="small"
                         )
                     }
@@ -617,4 +616,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
