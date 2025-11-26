@@ -22,14 +22,44 @@ st.markdown("""
         background-color: #FDFBF7; /* Bianco panna */
     }
     
-    /* 2. TESTI */
-    html, body, p, li, div, span, label, h1, h2, h3 {
+    /* 2. TESTI GLOBALI */
+    html, body, p, li, div, span, label, h1, h2, h3, h4, h5, h6 {
         font-family: 'Roboto', sans-serif;
         color: #484848 !important;
     }
-    
-    /* 3. STILE PULSANTI TAB (SCHEDE) */
-    /* Bottone Inattivo */
+
+    /* 3. CARD TITOLO */
+    .title-card {
+        background-color: #e0e0e0;
+        border: 1px solid #d1d1d1;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+    .title-card h1 {
+        margin: 0;
+        padding-bottom: 10px;
+        font-size: 2.5rem;
+        color: #2c2c2c !important;
+    }
+    .title-card p {
+        margin: 0;
+        font-size: 1.1rem;
+        color: #555 !important;
+    }
+
+    /* 4. CARD METRICHE FRONTIERA */
+    .metrics-card {
+        background-color: #e0e0e0;
+        border: 1px solid #d1d1d1;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+
+    /* 5. STILE PULSANTI TAB (SCHEDE) */
     button[data-baseweb="tab"] {
         background-color: #e0e0e0; 
         border: 1px solid #d1d1d1;
@@ -38,31 +68,28 @@ st.markdown("""
         margin-right: 5px;
         padding: 8px 16px;
     }
-    
-    /* Bottone Attivo (NON DIVENTA NERO, solo più scuro il bordo/testo) */
+    /* Bottone Attivo */
     button[data-baseweb="tab"][aria-selected="true"] {
-        background-color: #d6d6d6 !important; /* Grigio leggermente più scuro */
+        background-color: #d6d6d6 !important;
         border: 1px solid #999 !important;
         color: #000000 !important;
-        font-weight: 900 !important; /* Grassetto per evidenziare */
+        font-weight: 900 !important;
     }
-    
-    /* Rimuove decorazioni extra dei tab */
     div[data-testid="stTabs"] > div > div {
         box-shadow: none !important;
         border-bottom: none !important;
         gap: 0px;
     }
 
-    /* 4. STILE PULSANTE "AVVIA OTTIMIZZAZIONE" */
+    /* 6. STILE PULSANTI STANDARD (Avvia Ottimizzazione & Aggiorna) */
     div.stButton > button {
         background-color: #e0e0e0;
         color: #484848;
         border: 1px solid #b0b0b0;
         border-radius: 5px;
         font-weight: 600;
+        width: 100%; 
     }
-    /* Evita che diventi nero al click/focus */
     div.stButton > button:focus, div.stButton > button:active {
         background-color: #d0d0d0 !important;
         color: #000000 !important;
@@ -74,33 +101,39 @@ st.markdown("""
         color: #000000;
     }
 
-    /* 5. TABELLE E SELEZIONE CELLE */
+    /* 7. TABELLE */
     .stDataFrame {
         border: 1px solid #dcdcdc;
         border-radius: 5px;
     }
-    
-    /* Hack per rendere la selezione meno scura (migliora leggibilità) */
-    /* Tenta di sovrascrivere il colore di selezione del tema */
     [data-testid="stDataFrame"] table {
-        --ag-selected-row-background-color: #d3e2f2 !important; /* Azzurrino chiaro invece di scuro */
+        --ag-selected-row-background-color: #d3e2f2 !important;
         --ag-row-hover-color: #f0f0f0 !important;
     }
 
-    /* 6. METRICHE */
+    /* 8. METRICHE STANDARD */
     [data-testid="stMetricValue"] {
-        font-size: 1.8rem !important;
+        font-size: 1.6rem !important;
         color: #2c2c2c !important;
+    }
+    [data-testid="stMetricLabel"] {
+        font-weight: bold;
     }
     
     .block-container {
         padding-top: 2rem;
         padding-bottom: 2rem;
     }
-    
-    /* Colore barra progresso */
     .stProgress > div > div > div > div {
         background-color: #808080;
+    }
+    
+    /* LINEA DIVISORIA PERSONALIZZATA */
+    hr.custom-divider {
+        margin-top: 0px;
+        margin-bottom: 25px;
+        border: 0;
+        border-top: 2px solid #b0b0b0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -114,8 +147,6 @@ plt.rcParams['text.color'] = '#484848'
 plt.rcParams['axes.labelcolor'] = '#484848'
 plt.rcParams['xtick.color'] = '#484848'
 plt.rcParams['ytick.color'] = '#484848'
-
-# Bordo grafico (matplotlib params)
 plt.rcParams['axes.linewidth'] = 1
 plt.rcParams['axes.edgecolor'] = '#484848'
 
@@ -274,7 +305,7 @@ class Visualizer:
     # Helper per aggiungere contorno ai grafici
     def _add_border(self, fig):
         fig.patch.set_linewidth(1.5)
-        fig.patch.set_edgecolor('#cccccc') # Contorno grigio visibile
+        fig.patch.set_edgecolor('#cccccc')
         return fig
 
     def plot_normalized_prices(self):
@@ -321,7 +352,6 @@ class Visualizer:
         plt.subplots_adjust(top=0.9)
         g.fig.suptitle('Distribuzione Rendimenti', fontweight='bold', y=0.98)
         
-        # Aggiunta bordo manuale alla figura FacetGrid
         g.fig.patch.set_linewidth(1.5)
         g.fig.patch.set_edgecolor('#cccccc')
         return g.fig
@@ -337,7 +367,8 @@ class Visualizer:
 # CLASSE 4: PORTFOLIO OPTIMIZER
 # =============================================================================
 class PortfolioOptimizer:
-    def __init__(self, returns_df, num_portfolios=3000):
+    # MODIFICA: 5000 simulazioni
+    def __init__(self, returns_df, num_portfolios=5000):
         self.ret = returns_df
         self.n = num_portfolios
         self.results = None
@@ -384,7 +415,6 @@ class PortfolioOptimizer:
         ax.grid(True, linestyle=':', alpha=0.4)
         ax.legend(frameon=True, facecolor='white', framealpha=0.9)
         
-        # Aggiunta bordo
         fig.patch.set_linewidth(1.5)
         fig.patch.set_edgecolor('#cccccc')
         return fig
@@ -393,9 +423,23 @@ class PortfolioOptimizer:
 # MAIN FUNCTION
 # =============================================================================
 def main():
-    st.title("🇮🇹 FTSE MIB Top 10 Dashboard")
-    st.markdown("Analisi finanziaria automatizzata sui top player del mercato italiano.")
-    st.markdown("---")
+    # --- HEADER: TITOLO (SX) E PULSANTE UPDATE (DX) ---
+    col_title, col_btn = st.columns([5, 1])
+    
+    with col_title:
+        st.markdown("""
+            <div class="title-card">
+                <h1>🇮🇹 FTSE MIB Top 10 Dashboard</h1>
+                <p>Analisi finanziaria automatizzata sui top player del mercato italiano.</p>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with col_btn:
+        st.write("") # Spaziatura per allineare
+        st.write("") 
+        if st.button("🔄 Aggiorna Dati"):
+            st.cache_data.clear()
+            st.rerun()
     
     if 'opt_done' not in st.session_state:
         st.session_state.opt_done = False
@@ -440,33 +484,44 @@ def main():
         # TAB
         tab1, tab2, tab3 = st.tabs(["Statistiche Avanzate", "Analisi Grafica", "Frontiera Efficiente"])
 
-        # Funzione helper per stile celle PIU' SCURO (#e0e0e0) e testo leggibile
-        def style_darker_gray_cells(styler):
-            return styler.set_properties(**{
-                'background-color': '#e0e0e0',  # Grigio più scuro per distinguersi
+        # Funzione helper per stile celle FINALE
+        def style_final_table(styler):
+            styler.set_properties(**{
+                'background-color': '#e0e0e0',  # Grigio scuro
                 'color': '#2c2c2c',             # Testo scuro
                 'border-color': '#ffffff'       # Bordo bianco
             })
+            styler.set_table_styles([
+                {'selector': 'th', 'props': [
+                    ('background-color', '#cccccc'), 
+                    ('color', '#000000'), 
+                    ('font-weight', 'bold'),
+                    ('border', '1px solid white')
+                ]}
+            ])
+            return styler
 
         # --- TAB 1: TABELLE ---
         with tab1:
+            st.markdown("<hr class='custom-divider'>", unsafe_allow_html=True)
             st.subheader("1. Performance e Volatilità")
-            st.dataframe(style_darker_gray_cells(t1.style.format("{:.2%}", subset=['Media Geom. (Ann)', 'Media Giorn.', 'Dev.Std', 'Varianza'])), use_container_width=True)
+            st.dataframe(style_final_table(t1.style.format("{:.2%}", subset=['Media Geom. (Ann)', 'Media Giorn.', 'Dev.Std', 'Varianza'])), use_container_width=True)
 
             st.subheader("2. Analisi del Rischio")
-            st.dataframe(style_darker_gray_cells(t2.style.format("{:.2%}", subset=['Min', 'Max', 'Range', 'Max Drawdown'])
+            st.dataframe(style_final_table(t2.style.format("{:.2%}", subset=['Min', 'Max', 'Range', 'Max Drawdown'])
                          .format("{:.4f}", subset=['Cov. Mkt', 'Corr. Mkt'])), use_container_width=True)
 
             c1, c2 = st.columns(2)
             with c1: 
                 st.subheader("3. Asimmetria e Curtosi")
-                st.dataframe(style_darker_gray_cells(t3.style.format("{:.4f}")), use_container_width=True)
+                st.dataframe(style_final_table(t3.style.format("{:.4f}")), use_container_width=True)
             with c2: 
                 st.subheader("4. Test di Normalità (Jarque-Bera)")
-                st.dataframe(style_darker_gray_cells(t_jb.style.format({"p-value": "{:.4f}"})), use_container_width=True)
+                st.dataframe(style_final_table(t_jb.style.format({"p-value": "{:.4f}"})), use_container_width=True)
 
-        # --- TAB 2: GRAFICI CON BORDO ---
+        # --- TAB 2: GRAFICI ---
         with tab2:
+            st.markdown("<hr class='custom-divider'>", unsafe_allow_html=True)
             col1, col2 = st.columns(2)
             with col1:
                 st.write("**Performance Relativa**")
@@ -483,10 +538,10 @@ def main():
 
         # --- TAB 3: OTTIMIZZAZIONE ---
         with tab3:
+            st.markdown("<hr class='custom-divider'>", unsafe_allow_html=True)
             st.markdown("### Ottimizzazione di Portafoglio (Markowitz)")
-            st.caption("Simulazione Monte Carlo su 3000 portafogli casuali.")
+            st.caption("Simulazione Monte Carlo su 5000 portafogli casuali.")
             
-            # Pulsante che non diventa nero (gestito da CSS)
             if st.button("🚀 Avvia Ottimizzazione"):
                 opt = PortfolioOptimizer(rets)
                 res_max, res_min, w_max, w_min = opt.simulate()
@@ -504,11 +559,14 @@ def main():
                 w_min = st.session_state.opt_w_min
                 opt_obj = st.session_state.opt_obj
                 
-                c1, c2 = st.columns(2)
-                c1.metric("🚀 Max Sharpe", f"{max_pt['Rendimento']:.2%}", f"Vol: {max_pt['Volatilità']:.2%}")
-                c2.metric("🛡️ Min Volatility", f"{min_pt['Rendimento']:.2%}", f"Vol: {min_pt['Volatilità']:.2%}")
-                st.markdown("---")
-                
+                # BOX METRICHE
+                with st.container():
+                    st.markdown('<div class="metrics-card">', unsafe_allow_html=True)
+                    c1, c2 = st.columns(2)
+                    c1.metric("🚀 Max Sharpe", f"{max_pt['Rendimento']:.2%}", f"Vol: {max_pt['Volatilità']:.2%}")
+                    c2.metric("🛡️ Min Volatility", f"{min_pt['Rendimento']:.2%}", f"Vol: {min_pt['Volatilità']:.2%}")
+                    st.markdown('</div>', unsafe_allow_html=True)
+
                 col_plot, col_info = st.columns(2)
                 
                 with col_plot:
@@ -520,7 +578,6 @@ def main():
                     def make_weight_df(weights, tickers):
                         df_w = pd.DataFrame({'Ticker': tickers, 'Peso': weights})
                         df_w = df_w[df_w['Peso'] > 0.01].sort_values('Peso', ascending=False)
-                        # Reimposta l'indice per avere Ticker come colonna, utile per column_config
                         return df_w
 
                     df_w_max = make_weight_df(w_max, rets.columns)
@@ -528,29 +585,23 @@ def main():
 
                     t1, t2 = st.tabs(["Max Sharpe", "Min Volatility"])
                     
-                    # Configurazione colonne per larghezza "Peso"
                     col_config = {
-                        "Ticker": st.column_config.TextColumn("Ticker", width="medium"),
-                        "Peso": st.column_config.NumberColumn(
-                            "Peso (%)",
-                            format="%.2f%%", # Formato percentuale
-                            width="small"    # Larghezza ridotta
-                        )
+                        "Ticker": st.column_config.TextColumn("Ticker"),
+                        "Peso": st.column_config.NumberColumn("Peso (%)", format="%.2f%%", width="small")
                     }
 
                     with t1:
-                        # Tabella con celle grigie anche qui
                         st.dataframe(
-                            style_darker_gray_cells(df_w_max.style),
+                            style_final_table(df_w_max.style),
                             column_config=col_config,
-                            use_container_width=True,
+                            use_container_width=False,
                             hide_index=True 
                         )
                     with t2:
                         st.dataframe(
-                            style_darker_gray_cells(df_w_min.style),
+                            style_final_table(df_w_min.style),
                             column_config=col_config,
-                            use_container_width=True,
+                            use_container_width=False,
                             hide_index=True
                         )
             else:
@@ -560,3 +611,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
