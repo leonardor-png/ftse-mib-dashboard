@@ -233,7 +233,7 @@ class PortfolioOptimizer:
         self.ret = returns_df
         self.n = num_portfolios
         self.results = None
-        self.weights = [] # Store weights
+        self.weights = [] 
 
     def simulate(self):
         np.random.seed(42)
@@ -241,7 +241,7 @@ class PortfolioOptimizer:
         cov_matrix = self.ret.cov()
         n_assets = len(self.ret.columns)
         results_list = []
-        weights_list = [] # Store weights for each simulation
+        weights_list = [] 
 
         for _ in range(self.n):
             w = np.random.random(n_assets)
@@ -257,7 +257,6 @@ class PortfolioOptimizer:
         self.results = pd.DataFrame(results_list, columns=['Rendimento', 'Volatilità', 'Sharpe'])
         self.weights = np.array(weights_list)
         
-        # Identify best portfolios
         max_sharpe_idx = self.results['Sharpe'].idxmax()
         min_vol_idx = self.results['Volatilità'].idxmin()
         
@@ -328,7 +327,6 @@ def main():
         
         viz = Visualizer(df_stocks, rets, bench, non_norm_metrics=t3)
 
-        # TAB RINOMINATA QUI
         tab1, tab2, tab3 = st.tabs(["📊 Statistiche", "📈 Grafici", "🧠 Frontiera Efficiente"])
 
         with tab1:
@@ -342,7 +340,8 @@ def main():
                 st.dataframe(t3)
             with c2: 
                 st.subheader("Test Normalità")
-                st.dataframe(t_jb)
+                # FIX QUI: FORMATTAZIONE P-VALUE
+                st.dataframe(t_jb.style.format({"p-value": "{:.4f}"}))
 
         with tab2:
             col1, col2 = st.columns(2)
@@ -391,7 +390,6 @@ def main():
                 with col_info:
                     st.write("### 🏗️ Composizione Portafogli")
                     
-                    # Funzione helper per creare dataframe pesi
                     def make_weight_df(weights, tickers):
                         df_w = pd.DataFrame({'Ticker': tickers, 'Peso %': weights * 100})
                         return df_w.sort_values('Peso %', ascending=False).set_index('Ticker')
@@ -399,7 +397,6 @@ def main():
                     df_w_max = make_weight_df(w_max, rets.columns)
                     df_w_min = make_weight_df(w_min, rets.columns)
                     
-                    # Mostra solo titoli > 0.1% per pulizia
                     df_w_max = df_w_max[df_w_max['Peso %'] > 0.1]
                     df_w_min = df_w_min[df_w_min['Peso %'] > 0.1]
                     
