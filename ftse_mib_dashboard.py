@@ -175,7 +175,7 @@ class Visualizer:
 
     def plot_normalized_prices(self):
         norm = (self.prices / self.prices.iloc[0]) * 100
-        # MODIFICA DIMENSIONE: Impostato a 10x6 per uniformità
+        # SIZE FISSO PER TUTTI
         fig, ax = plt.subplots(figsize=(10, 6))
         colors = sns.color_palette("husl", len(norm.columns))
         for i, c in enumerate(norm.columns):
@@ -189,7 +189,7 @@ class Visualizer:
         return fig
 
     def plot_returns_boxplot(self):
-        # DIMENSIONE DI RIFERIMENTO: 10x6
+        # SIZE DI RIFERIMENTO
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.boxplot(data=self.returns, ax=ax, palette="vlag")
         ax.set_title("Dispersione Rendimenti", fontweight='bold')
@@ -204,8 +204,8 @@ class Visualizer:
         df_combined = df_combined.dropna()
         melt = df_combined.melt(var_name='Ticker', value_name='Rendimento')
         
-        # MODIFICA DIMENSIONE: aspect=1 e height=2.5 su 4 colonne produce larghezza ~10
-        g = sns.FacetGrid(melt, col="Ticker", col_wrap=4, sharex=False, sharey=False, height=2.5, aspect=1.0)
+        # FacetGrid size calibrato per essere simile a 10x6 complessivamente
+        g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=2.0, aspect=1.5)
         g.map_dataframe(sns.histplot, x="Rendimento", kde=True, color="skyblue")
         g.set_titles("{col_name}")
         plt.subplots_adjust(top=0.9)
@@ -213,7 +213,6 @@ class Visualizer:
         return g.fig
 
     def plot_correlation_heatmap(self):
-        # MODIFICA DIMENSIONE: Impostato a 10x6 per uniformità
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.heatmap(self.returns.corr(), annot=True, cmap='coolwarm', fmt=".2f", ax=ax)
         ax.set_title("Correlazioni", fontweight='bold')
@@ -247,7 +246,6 @@ class PortfolioOptimizer:
         return max_sharpe, min_vol
 
     def plot_efficient_frontier(self, max_pt, min_pt):
-        # MODIFICA DIMENSIONE: Impostato a 10x6 per uniformità
         fig, ax = plt.subplots(figsize=(10, 6))
         sc = ax.scatter(self.results['Volatilità'], self.results['Rendimento'], c=self.results['Sharpe'], cmap='viridis', s=10, alpha=0.6)
         plt.colorbar(sc, label='Sharpe')
@@ -311,11 +309,22 @@ def main():
                 st.dataframe(t_jb)
 
         with tab2:
-            st.pyplot(viz.plot_normalized_prices())
-            c1, c2 = st.columns(2)
-            with c1: st.pyplot(viz.plot_returns_boxplot())
-            with c2: st.pyplot(viz.plot_correlation_heatmap())
-            st.pyplot(viz.plot_histogram_grid())
+            # LAYOUT A GRIGLIA 2x2 PER AVERE GRAFICI DELLA STESSA DIMENSIONE
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**Performance Relativa**")
+                st.pyplot(viz.plot_normalized_prices())
+                
+                st.write("**Dispersione (Rischio)**")
+                st.pyplot(viz.plot_returns_boxplot())
+                
+            with col2:
+                st.write("**Correlazioni**")
+                st.pyplot(viz.plot_correlation_heatmap())
+                
+                st.write("**Distribuzioni**")
+                st.pyplot(viz.plot_histogram_grid())
 
         with tab3:
             if st.button("Avvia Ottimizzazione"):
