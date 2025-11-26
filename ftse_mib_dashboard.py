@@ -19,7 +19,7 @@ st.markdown("""
     
     /* 1. SFONDO GENERALE GIALLO CHIARO */
     .stApp {
-        background-color: #FFFDE7; /* Giallo chiaro pastello */
+        background-color: #FFFDE7; 
     }
     
     /* 2. TESTI GLOBALI */
@@ -68,20 +68,21 @@ st.markdown("""
         margin-right: 5px;
         padding: 8px 16px;
     }
-    /* Bottone Attivo */
+    /* Bottone Attivo (Evita il nero) */
     button[data-baseweb="tab"][aria-selected="true"] {
         background-color: #d6d6d6 !important;
         border: 1px solid #999 !important;
         color: #000000 !important;
         font-weight: 900 !important;
     }
+    /* Rimuove decorazioni extra */
     div[data-testid="stTabs"] > div > div {
         box-shadow: none !important;
         border-bottom: none !important;
         gap: 0px;
     }
 
-    /* 6. STILE PULSANTI STANDARD */
+    /* 6. STILE PULSANTI STANDARD (Avvia/Aggiorna) */
     div.stButton > button {
         background-color: #e0e0e0;
         color: #484848;
@@ -90,6 +91,7 @@ st.markdown("""
         font-weight: 600;
         width: 100%; 
     }
+    /* Stato Focus/Active (Cliccato) */
     div.stButton > button:focus, div.stButton > button:active {
         background-color: #d0d0d0 !important;
         color: #000000 !important;
@@ -101,15 +103,16 @@ st.markdown("""
         color: #000000;
     }
 
-    /* 7. TABELLE */
-    .stDataFrame {
+    /* 7. TABELLE (Forza Stile su st.table) */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    /* Bordo tabella */
+    div[data-testid="stTable"] {
         border: 1px solid #dcdcdc;
         border-radius: 5px;
-        background-color: #eeeeee; /* Background base grigio chiaro */
-    }
-    [data-testid="stDataFrame"] table {
-        --ag-selected-row-background-color: #d3e2f2 !important;
-        --ag-row-hover-color: #e0e0e0 !important;
+        overflow: hidden;
     }
 
     /* 8. METRICHE STANDARD */
@@ -143,17 +146,16 @@ st.markdown("""
 sns.set_theme(style="ticks", context="talk")
 plt.rcParams['figure.figsize'] = (10, 6)
 
-# SFONDO ESTERNO AL GRAFICO (Giallo chiaro)
+# SFONDO ESTERNO (Pagina)
 plt.rcParams['figure.facecolor'] = '#FFFDE7' 
-
-# SFONDO INTERNO AL GRAFICO (Bianco puro)
+# SFONDO INTERNO (Bianco)
 plt.rcParams['axes.facecolor'] = '#FFFFFF'
 
 plt.rcParams['text.color'] = '#484848'
 plt.rcParams['axes.labelcolor'] = '#484848'
 plt.rcParams['xtick.color'] = '#484848'
 plt.rcParams['ytick.color'] = '#484848'
-plt.rcParams['axes.linewidth'] = 1
+plt.rcParams['axes.linewidth'] = 1.5
 plt.rcParams['axes.edgecolor'] = '#484848'
 
 # =============================================================================
@@ -356,6 +358,7 @@ class Visualizer:
         g.fig.legend(handles=legend_elements, loc='lower right', fontsize=9, bbox_to_anchor=(0.95, 0.05), frameon=False)
         plt.subplots_adjust(top=0.9)
         g.fig.suptitle('Distribuzione Rendimenti', fontweight='bold', y=0.98)
+        
         g.fig.patch.set_linewidth(1.5)
         g.fig.patch.set_edgecolor('#cccccc')
         return g.fig
@@ -485,40 +488,45 @@ def main():
 
         tab1, tab2, tab3 = st.tabs(["Statistiche Avanzate", "Analisi Grafica", "Frontiera Efficiente"])
 
-        # --- STILE TABELLA: GRIGIO CHIARO E HEADER SCURO ---
+        # --- FUNZIONE DI STILE TABELLA ROBUSTA ---
         def style_final_table(styler):
+            # 1. Stile generale celle (Grigio Chiaro)
             styler.set_properties(**{
-                'background-color': '#eeeeee',  # Celle Dati: Grigio Chiaro
-                'color': '#2c2c2c',             # Testo Dati: Scuro
-                'border-color': '#ffffff'       # Bordo: Bianco
+                'background-color': '#eeeeee',  
+                'color': '#2c2c2c',             
+                'border-color': '#ffffff'       
             })
+            # 2. Stile HEADER (Righe Intestazione e Colonne Indice)
+            # 'th' in HTML cattura sia l'header in alto che l'index a sinistra
             styler.set_table_styles([
                 {'selector': 'th', 'props': [
-                    ('background-color', '#333333'), # Header (Righe/Col): Grigio Scuro
-                    ('color', '#ffffff'),            # Testo Header: Bianco
+                    ('background-color', '#333333'), # GRIGIO SCURO
+                    ('color', '#ffffff'),            # TESTO BIANCO
                     ('font-weight', 'bold'),
                     ('border', '1px solid white')
                 ]}
             ])
             return styler
 
-        # --- TAB 1: TABELLE ---
+        # --- TAB 1: TABELLE (USO st.table PER GARANTIRE COLORI HEADER) ---
         with tab1:
             st.markdown("<hr class='custom-divider'>", unsafe_allow_html=True)
+            
             st.subheader("1. Performance e Volatilità")
-            st.dataframe(style_final_table(t1.style.format("{:.2%}", subset=['Media Geom. (Ann)', 'Media Giorn.', 'Dev.Std', 'Varianza'])), use_container_width=True)
+            # Uso st.table invece di st.dataframe per rispettare lo stile header
+            st.table(style_final_table(t1.style.format("{:.2%}", subset=['Media Geom. (Ann)', 'Media Giorn.', 'Dev.Std', 'Varianza'])))
 
             st.subheader("2. Analisi del Rischio")
-            st.dataframe(style_final_table(t2.style.format("{:.2%}", subset=['Min', 'Max', 'Range', 'Max Drawdown'])
-                         .format("{:.4f}", subset=['Cov. Mkt', 'Corr. Mkt'])), use_container_width=True)
+            st.table(style_final_table(t2.style.format("{:.2%}", subset=['Min', 'Max', 'Range', 'Max Drawdown'])
+                         .format("{:.4f}", subset=['Cov. Mkt', 'Corr. Mkt'])))
 
             c1, c2 = st.columns(2)
             with c1: 
                 st.subheader("3. Asimmetria e Curtosi")
-                st.dataframe(style_final_table(t3.style.format("{:.4f}")), use_container_width=True)
+                st.table(style_final_table(t3.style.format("{:.4f}")))
             with c2: 
                 st.subheader("4. Test di Normalità (Jarque-Bera)")
-                st.dataframe(style_final_table(t_jb.style.format({"p-value": "{:.4f}"})), use_container_width=True)
+                st.table(style_final_table(t_jb.style.format({"p-value": "{:.4f}"})))
 
         # --- TAB 2: GRAFICI ---
         with tab2:
@@ -577,8 +585,11 @@ def main():
                     st.write("### 🏗️ Allocazione")
                     
                     def make_weight_df(weights, tickers):
+                        # Moltiplica x100
                         df_w = pd.DataFrame({'Ticker': tickers, 'Peso': weights * 100})
                         df_w = df_w[df_w['Peso'] > 0.0001].sort_values('Peso', ascending=False)
+                        # Formatta direttamente come stringa per st.table
+                        df_w['Peso'] = df_w['Peso'].apply(lambda x: f"{x:.2f}%")
                         return df_w
 
                     df_w_max = make_weight_df(w_max, rets.columns)
@@ -586,29 +597,11 @@ def main():
 
                     t1, t2 = st.tabs(["Max Sharpe", "Min Volatility"])
                     
-                    col_config = {
-                        "Ticker": st.column_config.TextColumn("Ticker"),
-                        "Peso": st.column_config.NumberColumn(
-                            "Peso (%)", 
-                            format="%.2f%%",
-                            width="small"
-                        )
-                    }
-
+                    # Uso st.table anche qui per coerenza estetica
                     with t1:
-                        st.dataframe(
-                            style_final_table(df_w_max.style),
-                            column_config=col_config,
-                            use_container_width=False,
-                            hide_index=True 
-                        )
+                        st.table(style_final_table(df_w_max.style))
                     with t2:
-                        st.dataframe(
-                            style_final_table(df_w_min.style),
-                            column_config=col_config,
-                            use_container_width=False,
-                            hide_index=True
-                        )
+                        st.table(style_final_table(df_w_min.style))
             else:
                 st.info("Clicca sul pulsante per avviare la simulazione.")
     else:
