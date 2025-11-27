@@ -124,10 +124,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- CONFIGURAZIONE GRAFICI (MODIFICATO: RIDOTTO ULTERIORMENTE DEL 30%) ---
-sns.set_theme(style="ticks", context="talk")
-# Originale 10x6 -> Prima Rid. 7x4.2 -> Nuova Riduzione (-30%) ~ 5x3
-plt.rcParams['figure.figsize'] = (5, 3) 
+# --- CONFIGURAZIONE GRAFICI (MODIFICATO PER EQUILIBRIO) ---
+# Usa 'notebook' invece di 'talk' per avere font e linee proporzionati a figure medie
+sns.set_theme(style="ticks", context="notebook") 
+
+# Dimensione equilibrata (9 larghezza, 5.5 altezza)
+# Si adatta bene allo schermo senza scrollare troppo verticalmente
+plt.rcParams['figure.figsize'] = (9, 5.5) 
 plt.rcParams['figure.facecolor'] = '#FFFDE7' 
 plt.rcParams['axes.facecolor'] = '#FFFFFF'
 plt.rcParams['text.color'] = '#000000'
@@ -291,8 +294,7 @@ class Visualizer:
 
     def plot_normalized_prices(self):
         norm = (self.prices / self.prices.iloc[0]) * 100
-        # Usa figsize globale ridotto (5, 3)
-        fig, ax = plt.subplots() 
+        fig, ax = plt.subplots() # Usa figsize globale (9, 5.5)
         colors = sns.color_palette("husl", len(norm.columns))
         for i, c in enumerate(norm.columns):
             ax.plot(norm.index, norm[c], label=c, alpha=0.9, linewidth=1.5, color=colors[i])
@@ -307,8 +309,7 @@ class Visualizer:
         return self._add_border(fig)
 
     def plot_returns_boxplot(self):
-        # Usa figsize globale ridotto (5, 3)
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots() # Usa figsize globale (9, 5.5)
         sns.boxplot(data=self.returns, ax=ax, palette="light:b", fliersize=3, linewidth=1)
         ax.set_title("Dispersione Rendimenti Giornalieri", fontweight='bold', pad=15)
         ax.grid(True, axis='y', linestyle=':', alpha=0.4)
@@ -323,8 +324,8 @@ class Visualizer:
         df_combined = df_combined.dropna()
         melt = df_combined.melt(var_name='Ticker', value_name='Rendimento')
         
-        # Ridotto height da 2.0 a 1.5 (-25% circa, combinato con aspect fa effetto -30%)
-        g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=1.5, aspect=1.5)
+        # FacetGrid con aspect ratio bilanciato per la nuova dimensione
+        g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=2.0, aspect=1.3)
         g.map_dataframe(sns.histplot, x="Rendimento", kde=True, color="#778899", edgecolor="white", linewidth=0.5)
         g.set_titles("{col_name}", fontweight='bold')
         
@@ -346,8 +347,7 @@ class Visualizer:
         return g.fig
 
     def plot_correlation_heatmap(self):
-        # Rimosso figsize fisso (10,6) per usare il globale (5, 3)
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots() # Usa figsize globale (9, 5.5)
         sns.heatmap(self.returns.corr(), annot=True, cmap='vlag', center=0, fmt=".2f", 
                     ax=ax, cbar_kws={'label': 'Correlazione'}, linewidths=0.5, linecolor='white')
         ax.set_title("Matrice di Correlazione", fontweight='bold', pad=15)
@@ -391,8 +391,7 @@ class PortfolioOptimizer:
         return max_sharpe_pt, min_vol_pt, max_w, min_w
 
     def plot_efficient_frontier(self, max_pt, min_pt):
-        # MANTENUTO GRANDE (10, 6) COME RICHIESTO
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(10, 6)) # Mantiene la dimensione originale per la frontiera
         sc = ax.scatter(self.results['Volatilità'], self.results['Rendimento'], c=self.results['Sharpe'], cmap='viridis', s=15, alpha=0.5)
         cbar = plt.colorbar(sc)
         cbar.set_label('Sharpe Ratio', rotation=270, labelpad=20, fontsize=10)
@@ -412,7 +411,6 @@ class PortfolioOptimizer:
 # MAIN FUNCTION
 # =============================================================================
 def main():
-    # --- HEADER ---
     col_title, col_btn = st.columns([5, 1])
     
     with col_title:
@@ -553,10 +551,8 @@ def main():
                     st.write("### 🏗️ Allocazione")
                     
                     def make_weight_df(weights, tickers):
-                        # Moltiplica x100
                         df_w = pd.DataFrame({'Ticker': tickers, 'Peso': weights * 100})
                         df_w = df_w[df_w['Peso'] > 0.0001].sort_values('Peso', ascending=False)
-                        # Formatta direttamente come stringa per st.table
                         df_w['Peso'] = df_w['Peso'].apply(lambda x: f"{x:.2f}%")
                         return df_w.set_index('Ticker')
 
