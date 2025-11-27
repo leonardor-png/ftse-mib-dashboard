@@ -3,6 +3,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import seaborn as sns
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
@@ -19,13 +20,13 @@ st.markdown("""
     
     /* 1. SFONDO GENERALE */
     .stApp {
-        background-color: #FFFDE7; 
+        background-color: #FFFDE7; /* Giallo chiaro */
     }
     
     /* 2. TESTI GLOBALI */
     html, body, p, li, div, span, label, h1, h2, h3, h4, h5, h6 {
         font-family: 'Roboto', sans-serif;
-        color: #000000 !important;
+        color: #000000 !important; /* Testo Nero ovunque */
     }
 
     /* 3. CARD TITOLO */
@@ -185,7 +186,6 @@ class DataManager:
         mapping = self._get_mapping()
         all_tickers = list(mapping.values())
         market_caps = {}
-        
         progress_bar = st.progress(0, text="Calcolo Market Cap in tempo reale...")
         try:
             batch_data = yf.download(all_tickers, period="1d", progress=False)
@@ -296,7 +296,7 @@ class FinancialAnalyzer:
         return res
 
 # =============================================================================
-# CLASSE 3: VISUALIZER (SENZA TITOLI)
+# CLASSE 3: VISUALIZER
 # =============================================================================
 class Visualizer:
     def __init__(self, prices, returns, benchmark=None, non_norm_metrics=None):
@@ -318,6 +318,7 @@ class Visualizer:
             bn = (self.bench / self.bench.iloc[0]) * 100
             ax.plot(bn.index, bn, label="FTSE MIB", color='#000000', ls='--', lw=2.5)
         
+        ax.yaxis.set_major_locator(mticker.MultipleLocator(100))
         ax.set_xlabel("")
         ax.grid(True, linestyle=':', alpha=0.4)
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', frameon=False, fontsize='small')
@@ -339,16 +340,29 @@ class Visualizer:
         df_combined = df_combined.dropna()
         melt = df_combined.melt(var_name='Ticker', value_name='Rendimento')
         
-        g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=1.3, aspect=1.3)
+        # MODIFICA: Height 1.5 per ingrandire leggermente le figure
+        # Aspect 1.3 per mantenerle proporzionate
+        g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=1.5, aspect=1.3)
         g.map_dataframe(sns.histplot, x="Rendimento", kde=True, color="#778899", edgecolor="white", linewidth=0.5)
-        g.set_titles("{col_name}", fontweight='bold')
+        
+        # MODIFICA: Size 8 per i titoli dei ticker (ridotta)
+        g.set_titles("{col_name}", fontweight='bold', size=8)
         
         g.set_axis_labels("", "")
         for ax in g.axes.flat:
             ax.set_xlabel("")
             ax.set_ylabel("")
+            # MODIFICA: Labelsize 6 per le etichette degli assi (ridotta)
+            ax.tick_params(axis='both', which='major', labelsize=6)
             
         g.despine(left=True)
+        legend_elements = [
+            Patch(facecolor='#778899', edgecolor='none', label='Frequenza'),
+            Line2D([0], [0], color='#778899', lw=2, label='Densità (KDE)')
+        ]
+        g.fig.legend(handles=legend_elements, loc='lower right', fontsize=8, bbox_to_anchor=(0.95, 0.05), frameon=False)
+        plt.subplots_adjust(top=0.9, hspace=0.4, wspace=0.3)
+        g.fig.suptitle('Distribuzione Rendimenti', fontweight='bold', y=0.98)
         g.fig.patch.set_linewidth(1.5)
         g.fig.patch.set_edgecolor('#999999')
         return g.fig
@@ -540,47 +554,31 @@ def main():
 
             current_tickers = df_stocks.columns.tolist()
 
-            # 1. Performance Relativa
             render_plot_with_description(
                 "Performance Relativa", 
                 viz.plot_normalized_prices(),
-                "Questo grafico normalizza il prezzo di tutti i titoli a quota 100 all'inizio del periodo. "
-                "Permette di confrontare la <b>performance percentuale cumulativa</b> indipendentemente dal valore nominale dell'azione.<br><br>"
-                "Ad esempio, se una linea raggiunge 110, significa che il titolo ha guadagnato il 10% nel periodo osservato.",
+                "Mostra l'andamento dei prezzi su base 100. Utile per confrontare la crescita cumulativa.",
                 current_tickers, ticker_mapping
             )
 
-            # 2. Boxplot
             render_plot_with_description(
                 "Dispersione (Rischio)", 
                 viz.plot_returns_boxplot(),
-                "Il Boxplot visualizza la distribuzione dei rendimenti giornalieri.<br><br>"
-                "<b>Scatola centrale:</b> Contiene il 50% dei dati centrali. Più è alta, più il titolo è volatile.<br>"
-                "<b>Linea interna:</b> Mediana dei rendimenti.<br>"
-                "<b>Punti esterni (Baffi):</b> Eventi estremi o anomali (outlier) positivi o negativi.",
+                "Visualizza la volatilità e gli outlier dei rendimenti giornalieri.",
                 current_tickers, ticker_mapping
             )
 
-            # 3. Heatmap
             render_plot_with_description(
                 "Correlazioni", 
                 viz.plot_correlation_heatmap(),
-                "Mostra come i titoli si muovono l'uno rispetto all'altro.<br><br>"
-                "<b>+1 (Rosso):</b> Si muovono in modo identico.<br>"
-                "<b>0 (Bianco):</b> Nessuna relazione.<br>"
-                "<b>-1 (Blu):</b> Si muovono in direzioni opposte.<br><br>"
-                "Utile per la diversificazione del portafoglio.",
+                "Misura quanto i titoli si muovono insieme. 1 = identico, -1 = opposto.",
                 current_tickers, ticker_mapping
             )
 
-            # 4. Histograms
             render_plot_with_description(
                 "Distribuzioni", 
                 viz.plot_histogram_grid(),
-                "Mostra la frequenza dei rendimenti giornalieri per ogni titolo.<br><br>"
-                "<b>Campana simmetrica:</b> Distribuzione Normale (prevedibile).<br>"
-                "<b>Code lunghe (Fat Tails):</b> Indicano che eventi estremi (crolli o boom) sono più frequenti del previsto.<br>"
-                "<b>Sbilanciamento:</b> Tendenza a rendimenti positivi o negativi.",
+                "Frequenza dei rendimenti giornalieri. Indica la normalità della distribuzione.",
                 current_tickers, ticker_mapping
             )
 
@@ -636,4 +634,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
