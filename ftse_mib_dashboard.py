@@ -124,9 +124,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- CONFIGURAZIONE GRAFICI ---
+# --- CONFIGURAZIONE GRAFICI (MODIFICATO DIMENSIONI) ---
 sns.set_theme(style="ticks", context="talk")
-plt.rcParams['figure.figsize'] = (10, 6)
+# Ridotto del 20% da (10, 6) a (8, 4.8)
+plt.rcParams['figure.figsize'] = (8, 4.8)
 plt.rcParams['figure.facecolor'] = '#FFFDE7' 
 plt.rcParams['axes.facecolor'] = '#FFFFFF'
 plt.rcParams['text.color'] = '#000000'
@@ -570,4 +571,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
