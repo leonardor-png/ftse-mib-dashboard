@@ -511,8 +511,8 @@ def main():
     with col_title:
         st.markdown("""
             <div class="title-card">
-                <h1>🇮🇹 FTSE MIB Top 10 Dashboard</h1>
-                <p>Analisi finanziaria automatizzata sui top player del mercato italiano.</p>
+                <h1>FTSE MIB Top 10 Dashboard</h1>
+                <p>ANALISI FINANZIARIA AUTOMATIZZATA SUI TOP PLAYER DEL MERCATO ITALIANO.</p>
             </div>
         """, unsafe_allow_html=True)
     
@@ -632,28 +632,28 @@ def main():
             render_plot_with_description(
                 "Performance Relativa", 
                 viz.plot_normalized_prices(),
-                "Mostra l'andamento dei prezzi su base 100. Utile per confrontare la crescita cumulativa.",
+                "Mostra l'andamento dei prezzi normalizzati a quota 100 all'inizio del periodo. Permette di confrontare la performance percentuale cumulata di titoli con prezzi diversi. Se una linea raggiunge 110, significa che il titolo ha guadagnato il 10%.",
                 current_tickers, ticker_mapping
             )
 
             render_plot_with_description(
                 "Dispersione (Rischio)", 
                 viz.plot_returns_boxplot(),
-                "Visualizza la volatilità e gli outlier dei rendimenti giornalieri.",
+                "Visualizza la volatilità dei rendimenti giornalieri. Una scatola più alta indica un titolo più rischioso. I 'baffi' (linee verticali) delimitano l'intervallo di oscillazione tipico, mentre i punti esterni rappresentano i movimenti di prezzo estremi o anomali (outlier).",
                 current_tickers, ticker_mapping
             )
 
             render_plot_with_description(
                 "Correlazioni", 
                 viz.plot_correlation_heatmap(),
-                "Misura quanto i titoli si muovono insieme. 1 = identico, -1 = opposto.",
+                "Misura il grado di interdipendenza tra i rendimenti dei titoli. Un valore vicino a +1 indica che i titoli tendono a muoversi nella stessa direzione, mentre un valore verso -1 indica movimenti opposti. I valori vicini allo 0 indicano assenza di legame.",
                 current_tickers, ticker_mapping
             )
 
             render_plot_with_description(
                 "Distribuzioni", 
                 viz.plot_histogram_grid(),
-                "Frequenza dei rendimenti giornalieri. Indica la normalità della distribuzione.",
+                "Mostra la frequenza dei rendimenti giornalieri: una forma a campana indica normalità, mentre code lunghe o asimmetrie segnalano un rischio maggiore di eventi estremi non previsti.",
                 current_tickers, ticker_mapping
             )
 
@@ -720,4 +720,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
