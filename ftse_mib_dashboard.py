@@ -124,10 +124,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- CONFIGURAZIONE GRAFICI (MODIFICATO DIMENSIONI) ---
+# --- CONFIGURAZIONE GRAFICI (MODIFICATO: RIDOTTO ULTERIORMENTE DEL 30%) ---
 sns.set_theme(style="ticks", context="talk")
-# Ridotto del 20% da (10, 6) a (8, 4.8)
-plt.rcParams['figure.figsize'] = (8, 4.8)
+# Originale 10x6 -> Prima Rid. 7x4.2 -> Nuova Riduzione (-30%) ~ 5x3
+plt.rcParams['figure.figsize'] = (5, 3) 
 plt.rcParams['figure.facecolor'] = '#FFFDE7' 
 plt.rcParams['axes.facecolor'] = '#FFFFFF'
 plt.rcParams['text.color'] = '#000000'
@@ -291,7 +291,8 @@ class Visualizer:
 
     def plot_normalized_prices(self):
         norm = (self.prices / self.prices.iloc[0]) * 100
-        fig, ax = plt.subplots(figsize=(10, 6))
+        # Usa figsize globale ridotto (5, 3)
+        fig, ax = plt.subplots() 
         colors = sns.color_palette("husl", len(norm.columns))
         for i, c in enumerate(norm.columns):
             ax.plot(norm.index, norm[c], label=c, alpha=0.9, linewidth=1.5, color=colors[i])
@@ -306,7 +307,8 @@ class Visualizer:
         return self._add_border(fig)
 
     def plot_returns_boxplot(self):
-        fig, ax = plt.subplots(figsize=(10, 6))
+        # Usa figsize globale ridotto (5, 3)
+        fig, ax = plt.subplots()
         sns.boxplot(data=self.returns, ax=ax, palette="light:b", fliersize=3, linewidth=1)
         ax.set_title("Dispersione Rendimenti Giornalieri", fontweight='bold', pad=15)
         ax.grid(True, axis='y', linestyle=':', alpha=0.4)
@@ -320,11 +322,12 @@ class Visualizer:
              df_combined['FTSE MIB'] = self.bench.pct_change().dropna()
         df_combined = df_combined.dropna()
         melt = df_combined.melt(var_name='Ticker', value_name='Rendimento')
-        g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=2.0, aspect=1.5)
+        
+        # Ridotto height da 2.0 a 1.5 (-25% circa, combinato con aspect fa effetto -30%)
+        g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=1.5, aspect=1.5)
         g.map_dataframe(sns.histplot, x="Rendimento", kde=True, color="#778899", edgecolor="white", linewidth=0.5)
         g.set_titles("{col_name}", fontweight='bold')
         
-        # RIMOZIONE ETICHETTE ASSI
         g.set_axis_labels("", "")
         for ax in g.axes.flat:
             ax.set_xlabel("")
@@ -343,7 +346,8 @@ class Visualizer:
         return g.fig
 
     def plot_correlation_heatmap(self):
-        fig, ax = plt.subplots(figsize=(10, 6))
+        # Rimosso figsize fisso (10,6) per usare il globale (5, 3)
+        fig, ax = plt.subplots()
         sns.heatmap(self.returns.corr(), annot=True, cmap='vlag', center=0, fmt=".2f", 
                     ax=ax, cbar_kws={'label': 'Correlazione'}, linewidths=0.5, linecolor='white')
         ax.set_title("Matrice di Correlazione", fontweight='bold', pad=15)
@@ -387,6 +391,7 @@ class PortfolioOptimizer:
         return max_sharpe_pt, min_vol_pt, max_w, min_w
 
     def plot_efficient_frontier(self, max_pt, min_pt):
+        # MANTENUTO GRANDE (10, 6) COME RICHIESTO
         fig, ax = plt.subplots(figsize=(10, 6))
         sc = ax.scatter(self.results['Volatilità'], self.results['Rendimento'], c=self.results['Sharpe'], cmap='viridis', s=15, alpha=0.5)
         cbar = plt.colorbar(sc)
