@@ -3,7 +3,6 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 import seaborn as sns
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
@@ -139,6 +138,16 @@ st.markdown("""
         margin-bottom: 4px;
         line-height: 1.2;
     }
+    
+    /* BOX EXPLAINER FRONTIERA (Nuovo) */
+    .frontier-explainer {
+        background-color: #ffffff;
+        border: 1px solid #999;
+        border-radius: 5px;
+        padding: 15px;
+        margin-top: 10px;
+        font-size: 0.9rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -186,6 +195,7 @@ class DataManager:
         mapping = self._get_mapping()
         all_tickers = list(mapping.values())
         market_caps = {}
+        
         progress_bar = st.progress(0, text="Calcolo Market Cap in tempo reale...")
         try:
             batch_data = yf.download(all_tickers, period="1d", progress=False)
@@ -340,19 +350,15 @@ class Visualizer:
         df_combined = df_combined.dropna()
         melt = df_combined.melt(var_name='Ticker', value_name='Rendimento')
         
-        # MODIFICA: Height 1.5 per ingrandire leggermente le figure
-        # Aspect 1.3 per mantenerle proporzionate
         g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=1.5, aspect=1.3)
         g.map_dataframe(sns.histplot, x="Rendimento", kde=True, color="#778899", edgecolor="white", linewidth=0.5)
         
-        # MODIFICA: Size 8 per i titoli dei ticker (ridotta)
         g.set_titles("{col_name}", fontweight='bold', size=8)
         
         g.set_axis_labels("", "")
         for ax in g.axes.flat:
             ax.set_xlabel("")
             ax.set_ylabel("")
-            # MODIFICA: Labelsize 6 per le etichette degli assi (ridotta)
             ax.tick_params(axis='both', which='major', labelsize=6)
             
         g.despine(left=True)
@@ -608,6 +614,16 @@ def main():
                 
                 with col_plot:
                     st.pyplot(opt_obj.plot_efficient_frontier(max_pt, min_pt))
+                    # SPIEGAZIONE AGGIUNTA QUI SOTTO IL GRAFICO
+                    st.markdown("""
+                    <div class="frontier-explainer">
+                        <b>Nota Metodologica:</b> Il grafico utilizza il modello <i>Mean-Variance</i> (Markowitz) con simulazione Monte Carlo.<br>
+                        <ul>
+                            <li><b>Max Sharpe (Stella Rossa):</b> Rappresenta il portafoglio più efficiente, quello che offre il miglior rendimento per unità di rischio assunto.</li>
+                            <li><b>Min Volatility (Stella Blu):</b> Indica il portafoglio più conservativo in assoluto, minimizzando la fluttuazione (rischio) indipendentemente dal rendimento.</li>
+                        </ul>
+                    </div>
+                    """, unsafe_allow_html=True)
                 
                 with col_info:
                     st.write("### 🏗️ Allocazione")
