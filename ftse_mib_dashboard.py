@@ -45,12 +45,11 @@ st.markdown("""
     }
 
     /* 4. TABELLE - STILE IMPERATIVO */
-    /* Targettizza specificamente le tabelle generate da st.table */
     
     /* INTESTAZIONI (Colonna Top e Indice Sinistra) */
     div[data-testid="stTable"] table thead th, 
     div[data-testid="stTable"] table tbody th {
-        background-color: #999999 !important; /* GRIGIO SCURO (ma leggibile col nero) */
+        background-color: #999999 !important; /* GRIGIO SCURO */
         color: #000000 !important;            /* TESTO NERO */
         font-weight: 900 !important;          /* Grassetto */
         border: 1px solid #ffffff !important; /* Bordo bianco */
@@ -323,6 +322,13 @@ class Visualizer:
         g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=2.0, aspect=1.5)
         g.map_dataframe(sns.histplot, x="Rendimento", kde=True, color="#778899", edgecolor="white", linewidth=0.5)
         g.set_titles("{col_name}", fontweight='bold')
+        
+        # --- MODIFICA QUI: RIMOZIONE TOTALE ETICHETTE ---
+        g.set_axis_labels("", "")
+        for ax in g.axes.flat:
+            ax.set_xlabel("")
+            ax.set_ylabel("")
+            
         g.despine(left=True)
         legend_elements = [
             Patch(facecolor='#778899', edgecolor='none', label='Frequenza'),
@@ -400,7 +406,6 @@ class PortfolioOptimizer:
 # MAIN FUNCTION
 # =============================================================================
 def main():
-    # --- HEADER ---
     col_title, col_btn = st.columns([5, 1])
     
     with col_title:
@@ -460,7 +465,7 @@ def main():
 
         tab1, tab2, tab3 = st.tabs(["Statistiche Avanzate", "Analisi Grafica", "Frontiera Efficiente"])
 
-        # --- CALLBACK OTTIMIZZAZIONE ---
+        # Callback per l'ottimizzazione
         def run_optimization_callback():
             opt = PortfolioOptimizer(rets)
             res_max, res_min, w_max, w_min = opt.simulate()
@@ -513,7 +518,7 @@ def main():
             st.markdown("### Ottimizzazione di Portafoglio (Markowitz)")
             st.caption("Simulazione Monte Carlo su 5000 portafogli casuali.")
             
-            # Bottone con Callback
+            # Pulsante con Callback
             st.button("🚀 Avvia Ottimizzazione", on_click=run_optimization_callback)
             
             if st.session_state.opt_done:
@@ -560,3 +565,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
