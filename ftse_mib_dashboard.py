@@ -11,21 +11,21 @@ from scipy import stats
 # --- CONFIGURAZIONE PAGINA ---
 st.set_page_config(page_title="FTSE MIB Dashboard", layout="wide", page_icon="📈")
 
-# --- CUSTOM CSS AVANZATO ---
+# --- CUSTOM CSS (STILE FORZATO) ---
 st.markdown("""
 <style>
     /* Importa font */
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
     
-    /* 1. SFONDO GENERALE GIALLO CHIARO */
+    /* 1. SFONDO GENERALE */
     .stApp {
-        background-color: #FFFDE7; 
+        background-color: #FFFDE7; /* Giallo chiaro */
     }
     
     /* 2. TESTI GLOBALI */
     html, body, p, li, div, span, label, h1, h2, h3, h4, h5, h6 {
         font-family: 'Roboto', sans-serif;
-        color: #484848 !important;
+        color: #000000 !important; /* Testo Nero ovunque */
     }
 
     /* 3. CARD TITOLO */
@@ -41,128 +41,95 @@ st.markdown("""
         margin: 0;
         padding-bottom: 10px;
         font-size: 2.5rem;
-        color: #2c2c2c !important;
-    }
-    .title-card p {
-        margin: 0;
-        font-size: 1.1rem;
-        color: #555 !important;
-    }
-
-    /* 4. CARD METRICHE FRONTIERA */
-    .metrics-card {
-        background-color: #e0e0e0;
-        border: 1px solid #d1d1d1;
-        border-radius: 8px;
-        padding: 15px;
-        margin-top: 15px;
-        margin-bottom: 15px;
-    }
-
-    /* 5. STILE PULSANTI TAB (SCHEDE) */
-    button[data-baseweb="tab"] {
-        background-color: #e0e0e0; 
-        border: 1px solid #d1d1d1;
-        border-radius: 6px;
-        color: #484848;
-        margin-right: 5px;
-        padding: 8px 16px;
-    }
-    /* Bottone Attivo */
-    button[data-baseweb="tab"][aria-selected="true"] {
-        background-color: #d6d6d6 !important;
-        border: 1px solid #999 !important;
         color: #000000 !important;
-        font-weight: 900 !important;
-    }
-    div[data-testid="stTabs"] > div > div {
-        box-shadow: none !important;
-        border-bottom: none !important;
-        gap: 0px;
     }
 
-    /* 6. STILE PULSANTI STANDARD */
-    div.stButton > button {
-        background-color: #e0e0e0;
-        color: #484848;
-        border: 1px solid #b0b0b0;
-        border-radius: 5px;
-        font-weight: 600;
-        width: 100%; 
-    }
-    div.stButton > button:focus, div.stButton > button:active {
-        background-color: #d0d0d0 !important;
-        color: #000000 !important;
-        border-color: #808080 !important;
-        box-shadow: none !important;
-    }
-    div.stButton > button:hover {
-        border-color: #484848;
-        color: #000000;
-    }
-
-    /* 7. TABELLE: STILE FORZATO PER INTESTAZIONI E CELLE */
+    /* 4. TABELLE - REGOLE CSS SPECIFICHE */
+    /* Forza il colore su tutte le tabelle statiche (st.table) */
     
-    /* Intestazioni (Header Colonna e Indice Riga) */
+    /* INTESTAZIONI (Colonna e Indice Riga) */
     thead tr th, tbody th {
-        background-color: #333333 !important; /* Grigio Scuro */
-        color: #ffffff !important;            /* Testo Bianco */
-        font-weight: bold !important;
-        border: 1px solid #ffffff !important;
+        background-color: #aaaaaa !important; /* Grigio Medio/Scuro */
+        color: #000000 !important;            /* Testo NERO */
+        font-weight: 900 !important;          /* Grassetto */
+        border: 1px solid #ffffff !important; /* Bordo bianco */
+        text-align: center !important;
     }
 
-    /* Celle Dati (Corpo Tabella) */
+    /* CELLE DATI (Corpo) */
     tbody tr td {
         background-color: #eeeeee !important; /* Grigio Chiaro */
-        color: #2c2c2c !important;            /* Testo Scuro */
+        color: #000000 !important;            /* Testo NERO */
         border: 1px solid #ffffff !important;
     }
 
     /* Contenitore Tabella */
     div[data-testid="stTable"] {
-        border: 1px solid #dcdcdc;
-        border-radius: 5px;
+        border: 1px solid #999999;
+        border-radius: 4px;
         overflow: hidden;
     }
 
-    /* 8. METRICHE STANDARD */
-    [data-testid="stMetricValue"] {
-        font-size: 1.6rem !important;
-        color: #2c2c2c !important;
-    }
-    [data-testid="stMetricLabel"] {
+    /* 5. STILE PULSANTI TAB */
+    button[data-baseweb="tab"] {
+        background-color: #e0e0e0; 
+        border: 1px solid #d1d1d1;
+        color: #000000;
         font-weight: bold;
     }
-    
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
+    button[data-baseweb="tab"][aria-selected="true"] {
+        background-color: #c0c0c0 !important;
+        border: 1px solid #666 !important;
+        color: #000000 !important;
     }
-    .stProgress > div > div > div > div {
-        background-color: #808080;
+
+    /* 6. PULSANTI STANDARD */
+    div.stButton > button {
+        background-color: #e0e0e0;
+        color: #000000;
+        border: 1px solid #999;
+        font-weight: bold;
+        width: 100%; 
+    }
+    div.stButton > button:hover {
+        border-color: #000000;
+        background-color: #dcdcdc;
+    }
+
+    /* 7. BOX METRICHE */
+    .metrics-card {
+        background-color: #e0e0e0;
+        border: 1px solid #999;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+    [data-testid="stMetricValue"] {
+        color: #000000 !important;
     }
     
-    /* LINEA DIVISORIA */
+    /* DIVISORE */
     hr.custom-divider {
         margin-top: 0px;
         margin-bottom: 25px;
         border: 0;
-        border-top: 2px solid #b0b0b0;
+        border-top: 2px solid #999;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- IMPOSTAZIONI GRAFICI GLOBALI ---
+# --- CONFIGURAZIONE GRAFICI ---
 sns.set_theme(style="ticks", context="talk")
 plt.rcParams['figure.figsize'] = (10, 6)
 plt.rcParams['figure.facecolor'] = '#FFFDE7' 
 plt.rcParams['axes.facecolor'] = '#FFFFFF'
-plt.rcParams['text.color'] = '#484848'
-plt.rcParams['axes.labelcolor'] = '#484848'
-plt.rcParams['xtick.color'] = '#484848'
-plt.rcParams['ytick.color'] = '#484848'
-plt.rcParams['axes.linewidth'] = 1.5
-plt.rcParams['axes.edgecolor'] = '#484848'
+plt.rcParams['text.color'] = '#000000'
+plt.rcParams['axes.labelcolor'] = '#000000'
+plt.rcParams['xtick.color'] = '#000000'
+plt.rcParams['ytick.color'] = '#000000'
+plt.rcParams['axes.edgecolor'] = '#000000'
+plt.rcParams['axes.linewidth'] = 1
 
 # =============================================================================
 # CLASSE 1: DATA MANAGER
@@ -194,7 +161,6 @@ class DataManager:
         market_caps = {}
         
         progress_bar = st.progress(0, text="Calcolo Market Cap in tempo reale...")
-        
         try:
             batch_data = yf.download(all_tickers, period="1d", progress=False)
             if 'Close' in batch_data.columns:
@@ -212,13 +178,11 @@ class DataManager:
                     shares = ticker_obj.fast_info.get('shares', 0)
                     if shares > 0 and price > 0:
                         market_caps[ticker] = price * shares
-                except Exception:
-                    continue
+                except: continue
 
             progress_bar.empty()
             sorted_caps = dict(sorted(market_caps.items(), key=lambda item: item[1], reverse=True))
             return list(sorted_caps.keys())[:10]
-
         except Exception as e:
             st.error(f"Errore critico classifica: {e}")
             return []
@@ -237,9 +201,7 @@ class DataManager:
                 except:
                     data = raw_data.xs('Close', level=0, axis=1)
             return data.dropna()
-        except Exception as e:
-            st.error(f"Errore download: {e}")
-            return pd.DataFrame()
+        except: return pd.DataFrame()
 
 # =============================================================================
 # CLASSE 2: FINANCIAL ANALYZER
@@ -318,7 +280,7 @@ class Visualizer:
 
     def _add_border(self, fig):
         fig.patch.set_linewidth(1.5)
-        fig.patch.set_edgecolor('#cccccc')
+        fig.patch.set_edgecolor('#999999')
         return fig
 
     def plot_normalized_prices(self):
@@ -329,9 +291,8 @@ class Visualizer:
             ax.plot(norm.index, norm[c], label=c, alpha=0.9, linewidth=1.5, color=colors[i])
         if self.bench is not None:
             bn = (self.bench / self.bench.iloc[0]) * 100
-            ax.plot(bn.index, bn, label="FTSE MIB", color='#2c2c2c', ls='--', lw=2.5)
+            ax.plot(bn.index, bn, label="FTSE MIB", color='#000000', ls='--', lw=2.5)
         ax.set_title("Performance Relativa (Base 100)", fontweight='bold', pad=15)
-        ax.set_xlabel("")
         ax.grid(True, linestyle=':', alpha=0.4)
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', frameon=False)
         plt.tight_layout()
@@ -355,7 +316,6 @@ class Visualizer:
         g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=2.0, aspect=1.5)
         g.map_dataframe(sns.histplot, x="Rendimento", kde=True, color="#778899", edgecolor="white", linewidth=0.5)
         g.set_titles("{col_name}", fontweight='bold')
-        g.set_axis_labels("", "")
         g.despine(left=True)
         legend_elements = [
             Patch(facecolor='#778899', edgecolor='none', label='Frequenza'),
@@ -365,7 +325,7 @@ class Visualizer:
         plt.subplots_adjust(top=0.9)
         g.fig.suptitle('Distribuzione Rendimenti', fontweight='bold', y=0.98)
         g.fig.patch.set_linewidth(1.5)
-        g.fig.patch.set_edgecolor('#cccccc')
+        g.fig.patch.set_edgecolor('#999999')
         return g.fig
 
     def plot_correlation_heatmap(self):
@@ -426,14 +386,13 @@ class PortfolioOptimizer:
         ax.grid(True, linestyle=':', alpha=0.4)
         ax.legend(frameon=True, facecolor='white', framealpha=0.9)
         fig.patch.set_linewidth(1.5)
-        fig.patch.set_edgecolor('#cccccc')
+        fig.patch.set_edgecolor('#999999')
         return fig
 
 # =============================================================================
 # MAIN FUNCTION
 # =============================================================================
 def main():
-    # --- HEADER ---
     col_title, col_btn = st.columns([5, 1])
     
     with col_title:
@@ -493,9 +452,10 @@ def main():
 
         tab1, tab2, tab3 = st.tabs(["Statistiche Avanzate", "Analisi Grafica", "Frontiera Efficiente"])
 
-        # --- TAB 1: TABELLE (st.table per rispettare lo stile header) ---
+        # --- TAB 1: TABELLE (USA st.table PER FORZARE I COLORI) ---
         with tab1:
             st.markdown("<hr class='custom-divider'>", unsafe_allow_html=True)
+            
             st.subheader("1. Performance e Volatilità")
             st.table(t1.style.format("{:.2%}", subset=['Media Geom. (Ann)', 'Media Giorn.', 'Dev.Std', 'Varianza']))
 
@@ -551,7 +511,6 @@ def main():
                 w_min = st.session_state.opt_w_min
                 opt_obj = st.session_state.opt_obj
                 
-                # BOX METRICHE
                 with st.container():
                     st.markdown('<div class="metrics-card">', unsafe_allow_html=True)
                     c1, c2 = st.columns(2)
@@ -568,19 +527,17 @@ def main():
                     st.write("### 🏗️ Allocazione")
                     
                     def make_weight_df(weights, tickers):
-                        # Moltiplica x100
                         df_w = pd.DataFrame({'Ticker': tickers, 'Peso': weights * 100})
                         df_w = df_w[df_w['Peso'] > 0.0001].sort_values('Peso', ascending=False)
-                        # Formatta stringa per st.table
                         df_w['Peso'] = df_w['Peso'].apply(lambda x: f"{x:.2f}%")
-                        return df_w
+                        return df_w.set_index('Ticker')
 
                     df_w_max = make_weight_df(w_max, rets.columns)
                     df_w_min = make_weight_df(w_min, rets.columns)
 
                     t1, t2 = st.tabs(["Max Sharpe", "Min Volatility"])
                     
-                    # Usa st.table per coerenza estetica
+                    # Usa st.table per ereditare lo stile grigio/nero
                     with t1:
                         st.table(df_w_max)
                     with t2:
@@ -592,4 +549,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
