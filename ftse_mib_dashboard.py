@@ -11,7 +11,7 @@ from scipy import stats
 # --- CONFIGURAZIONE PAGINA ---
 st.set_page_config(page_title="FTSE MIB Dashboard", layout="wide", page_icon="📈")
 
-# --- CUSTOM CSS (STILE FORZATO CON PRIORITÀ ALTA) ---
+# --- CUSTOM CSS (STILE FORZATO) ---
 st.markdown("""
 <style>
     /* Importa font */
@@ -25,7 +25,7 @@ st.markdown("""
     /* 2. TESTI GLOBALI */
     html, body, p, li, div, span, label, h1, h2, h3, h4, h5, h6 {
         font-family: 'Roboto', sans-serif;
-        color: #000000 !important; /* Testo Nero */
+        color: #000000 !important; /* Testo Nero ovunque */
     }
 
     /* 3. CARD TITOLO */
@@ -44,29 +44,31 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* 4. TABELLE - STILE FORZATO "IMPERATIVE" */
+    /* 4. TABELLE - STILE IMPERATIVO */
+    /* Targettizza specificamente le tabelle generate da st.table */
     
-    /* INTESTAZIONI (Header in alto e Indice a sinistra) */
-    thead tr th, tbody th {
-        background-color:  #404040 !important; /* GRIGIO SCURO */
-        color: #ffffff !important;            /* TESTO BIANCO */
+    /* INTESTAZIONI (Colonna Top e Indice Sinistra) */
+    div[data-testid="stTable"] table thead th, 
+    div[data-testid="stTable"] table tbody th {
+        background-color: #999999 !important; /* GRIGIO SCURO (ma leggibile col nero) */
+        color: #000000 !important;            /* TESTO NERO */
         font-weight: 900 !important;          /* Grassetto */
-        border: 1px solid #555555 !important;
+        border: 1px solid #ffffff !important; /* Bordo bianco */
         text-align: center !important;
     }
 
     /* CELLE DATI (Corpo centrale) */
-    tbody tr td {
-        background-color: #eeeeee !important; /* GRIGIO CHIARO */
-        color: #000000 !important;            /* TESTO NERO */
-        border: 1px solid #cccccc !important;
+    div[data-testid="stTable"] table tbody td {
+        background-color: #eeeeee !important; /* Grigio Chiaro */
+        color: #000000 !important;            /* Testo NERO */
+        border: 1px solid #ffffff !important;
     }
 
-    /* Contenitore generale tabella */
+    /* Contenitore Tabella */
     div[data-testid="stTable"] {
-        border: 1px solid #999;
+        border: 1px solid #999999;
         border-radius: 4px;
-        overflow: hidden; 
+        overflow: hidden;
     }
 
     /* 5. STILE PULSANTI TAB */
@@ -458,7 +460,7 @@ def main():
 
         tab1, tab2, tab3 = st.tabs(["Statistiche Avanzate", "Analisi Grafica", "Frontiera Efficiente"])
 
-        # --- FUNZIONE CALLBACK PER OTTIMIZZAZIONE (Fix Tab Jumping) ---
+        # --- CALLBACK OTTIMIZZAZIONE ---
         def run_optimization_callback():
             opt = PortfolioOptimizer(rets)
             res_max, res_min, w_max, w_min = opt.simulate()
@@ -474,7 +476,6 @@ def main():
             st.markdown("<hr class='custom-divider'>", unsafe_allow_html=True)
             
             st.subheader("1. Performance e Volatilità")
-            # st.table FORZA IL CSS
             st.table(t1.style.format("{:.2%}", subset=['Media Geom. (Ann)', 'Media Giorn.', 'Dev.Std', 'Varianza']))
 
             st.subheader("2. Analisi del Rischio")
@@ -559,4 +560,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
