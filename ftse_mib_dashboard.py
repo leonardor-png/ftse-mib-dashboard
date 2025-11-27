@@ -48,7 +48,7 @@ st.markdown("""
     
     /* INTESTAZIONI (Header in alto e Indice a sinistra) */
     thead tr th, tbody th {
-        background-color: #333333 !important; /* GRIGIO SCURO */
+        background-color:  #404040 !important; /* GRIGIO SCURO */
         color: #ffffff !important;            /* TESTO BIANCO */
         font-weight: 900 !important;          /* Grassetto */
         border: 1px solid #555555 !important;
@@ -559,3 +559,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
