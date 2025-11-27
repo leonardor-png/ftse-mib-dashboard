@@ -45,8 +45,6 @@ st.markdown("""
     }
 
     /* 4. TABELLE - STILE IMPERATIVO */
-    
-    /* INTESTAZIONI (Colonna Top e Indice Sinistra) */
     div[data-testid="stTable"] table thead th, 
     div[data-testid="stTable"] table tbody th {
         background-color: #999999 !important; /* GRIGIO SCURO */
@@ -55,15 +53,11 @@ st.markdown("""
         border: 1px solid #ffffff !important; /* Bordo bianco */
         text-align: center !important;
     }
-
-    /* CELLE DATI (Corpo centrale) */
     div[data-testid="stTable"] table tbody td {
         background-color: #eeeeee !important; /* Grigio Chiaro */
         color: #000000 !important;            /* Testo NERO */
         border: 1px solid #ffffff !important;
     }
-
-    /* Contenitore Tabella */
     div[data-testid="stTable"] {
         border: 1px solid #999999;
         border-radius: 4px;
@@ -121,13 +115,24 @@ st.markdown("""
         border: 0;
         border-top: 2px solid #999;
     }
+    
+    /* BOX DESCRIZIONE GRAFICO (Nuovo) */
+    .chart-desc {
+        background-color: #ffffff;
+        border-left: 4px solid #999;
+        padding: 15px;
+        border-radius: 0 5px 5px 0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# --- CONFIGURAZIONE GRAFICI (MODIFICATO: RIDOTTO DRASTICAMENTE) ---
-sns.set_theme(style="ticks", context="notebook") # Notebook usa font più piccoli di Talk
-# Ridotto a (6.0, 3.5) per stare in una schermata singola
-plt.rcParams['figure.figsize'] = (6.0, 3.5) 
+# --- CONFIGURAZIONE GRAFICI ---
+sns.set_theme(style="ticks", context="notebook")
+plt.rcParams['figure.figsize'] = (6.0, 3.5) # Dimensione Ridotta
 plt.rcParams['figure.facecolor'] = '#FFFDE7' 
 plt.rcParams['axes.facecolor'] = '#FFFFFF'
 plt.rcParams['text.color'] = '#000000'
@@ -165,7 +170,6 @@ class DataManager:
         mapping = self._get_mapping()
         all_tickers = list(mapping.values())
         market_caps = {}
-        
         progress_bar = st.progress(0, text="Calcolo Market Cap in tempo reale...")
         try:
             batch_data = yf.download(all_tickers, period="1d", progress=False)
@@ -185,7 +189,6 @@ class DataManager:
                     if shares > 0 and price > 0:
                         market_caps[ticker] = price * shares
                 except: continue
-
             progress_bar.empty()
             sorted_caps = dict(sorted(market_caps.items(), key=lambda item: item[1], reverse=True))
             return list(sorted_caps.keys())[:10]
@@ -277,7 +280,7 @@ class FinancialAnalyzer:
         return res
 
 # =============================================================================
-# CLASSE 3: VISUALIZER
+# CLASSE 3: VISUALIZER (SENZA TITOLI INTERNI)
 # =============================================================================
 class Visualizer:
     def __init__(self, prices, returns, benchmark=None, non_norm_metrics=None):
@@ -291,7 +294,6 @@ class Visualizer:
 
     def plot_normalized_prices(self):
         norm = (self.prices / self.prices.iloc[0]) * 100
-        # Usa figsize globale ridotto (6.0, 3.5)
         fig, ax = plt.subplots() 
         colors = sns.color_palette("husl", len(norm.columns))
         for i, c in enumerate(norm.columns):
@@ -299,7 +301,8 @@ class Visualizer:
         if self.bench is not None:
             bn = (self.bench / self.bench.iloc[0]) * 100
             ax.plot(bn.index, bn, label="FTSE MIB", color='#000000', ls='--', lw=2.5)
-        ax.set_title("Performance Relativa (Base 100)", fontweight='bold', pad=10)
+        
+        # RIMOSSO TITOLO
         ax.set_xlabel("")
         ax.grid(True, linestyle=':', alpha=0.4)
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', frameon=False, fontsize='small')
@@ -307,10 +310,9 @@ class Visualizer:
         return self._add_border(fig)
 
     def plot_returns_boxplot(self):
-        # Usa figsize globale ridotto (6.0, 3.5)
         fig, ax = plt.subplots()
         sns.boxplot(data=self.returns, ax=ax, palette="light:b", fliersize=3, linewidth=1)
-        ax.set_title("Dispersione Rendimenti Giornalieri", fontweight='bold', pad=10)
+        # RIMOSSO TITOLO
         ax.grid(True, axis='y', linestyle=':', alpha=0.4)
         plt.xticks(rotation=45)
         plt.tight_layout()
@@ -323,8 +325,6 @@ class Visualizer:
         df_combined = df_combined.dropna()
         melt = df_combined.melt(var_name='Ticker', value_name='Rendimento')
         
-        # FacetGrid con aspect ratio bilanciato per la nuova dimensione molto piccola
-        # Height 1.3 per stare compatto
         g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=1.3, aspect=1.3)
         g.map_dataframe(sns.histplot, x="Rendimento", kde=True, color="#778899", edgecolor="white", linewidth=0.5)
         g.set_titles("{col_name}", fontweight='bold')
@@ -335,23 +335,17 @@ class Visualizer:
             ax.set_ylabel("")
             
         g.despine(left=True)
-        legend_elements = [
-            Patch(facecolor='#778899', edgecolor='none', label='Frequenza'),
-            Line2D([0], [0], color='#778899', lw=2, label='Densità (KDE)')
-        ]
-        g.fig.legend(handles=legend_elements, loc='lower right', fontsize=8, bbox_to_anchor=(0.95, 0.05), frameon=False)
-        plt.subplots_adjust(top=0.9)
-        g.fig.suptitle('Distribuzione Rendimenti', fontweight='bold', y=0.98)
+        # RIMOSSO SUPTITLE
+        
         g.fig.patch.set_linewidth(1.5)
         g.fig.patch.set_edgecolor('#999999')
         return g.fig
 
     def plot_correlation_heatmap(self):
-        # Usa figsize globale ridotto (6.0, 3.5)
         fig, ax = plt.subplots()
         sns.heatmap(self.returns.corr(), annot=True, cmap='vlag', center=0, fmt=".2f", 
                     ax=ax, cbar_kws={'label': 'Correlazione'}, linewidths=0.5, linecolor='white', annot_kws={"size": 7})
-        ax.set_title("Matrice di Correlazione", fontweight='bold', pad=10)
+        # RIMOSSO TITOLO
         return self._add_border(fig)
 
 # =============================================================================
@@ -392,7 +386,6 @@ class PortfolioOptimizer:
         return max_sharpe_pt, min_vol_pt, max_w, min_w
 
     def plot_efficient_frontier(self, max_pt, min_pt):
-        # MANTENUTO GRANDE (10, 6) COME RICHIESTO
         fig, ax = plt.subplots(figsize=(10, 6))
         sc = ax.scatter(self.results['Volatilità'], self.results['Rendimento'], c=self.results['Sharpe'], cmap='viridis', s=15, alpha=0.5)
         cbar = plt.colorbar(sc)
@@ -413,7 +406,6 @@ class PortfolioOptimizer:
 # MAIN FUNCTION
 # =============================================================================
 def main():
-    # --- HEADER ---
     col_title, col_btn = st.columns([5, 1])
     
     with col_title:
@@ -473,7 +465,6 @@ def main():
 
         tab1, tab2, tab3 = st.tabs(["Statistiche Avanzate", "Analisi Grafica", "Frontiera Efficiente"])
 
-        # Callback per l'ottimizzazione
         def run_optimization_callback():
             opt = PortfolioOptimizer(rets)
             res_max, res_min, w_max, w_min = opt.simulate()
@@ -503,24 +494,62 @@ def main():
                 st.subheader("4. Test di Normalità (Jarque-Bera)")
                 st.table(t_jb.style.format({"p-value": "{:.4f}"}))
 
-        # --- TAB 2: GRAFICI CENTRATI E PICCOLI ---
+        # --- TAB 2: GRAFICI AFFIANCATI A TESTO ---
         with tab2:
             st.markdown("<hr class='custom-divider'>", unsafe_allow_html=True)
             
-            # Funzione helper per centrare
-            def render_centered_plot(title, fig):
-                # Layout: Vuoto (1) | Grafico (3) | Vuoto (1)
-                # Questo centra il grafico nella pagina
-                col_left, col_center, col_right = st.columns([1, 3, 1])
-                with col_center:
-                    st.write(f"**{title}**")
+            # Helper function per layout: Grafico SX (2 parti) | Testo DX (1 parte)
+            def render_plot_with_description(title, fig, description):
+                col_chart, col_text = st.columns([2, 1])
+                
+                with col_chart:
                     st.pyplot(fig)
+                
+                with col_text:
+                    # Uso un box CSS per centrare verticalmente il testo
+                    st.markdown(f"""
+                    <div class="chart-desc">
+                        <h3 style="margin-top:0;">{title}</h3>
+                        <p style="font-size:0.95rem; line-height:1.5;">{description}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
                 st.markdown("---")
 
-            render_centered_plot("Performance Relativa", viz.plot_normalized_prices())
-            render_centered_plot("Dispersione (Rischio)", viz.plot_returns_boxplot())
-            render_centered_plot("Correlazioni", viz.plot_correlation_heatmap())
-            render_centered_plot("Distribuzioni", viz.plot_histogram_grid())
+            # 1. Normalized Prices
+            render_plot_with_description(
+                "Performance Relativa", 
+                viz.plot_normalized_prices(),
+                "Questo grafico mostra l'andamento dei prezzi di tutti i titoli riportati a una base comune (100).<br><br>"
+                "Permette di confrontare rapidamente il rendimento cumulato nel periodo selezionato, ignorando il prezzo assoluto delle azioni."
+            )
+
+            # 2. Boxplot
+            render_plot_with_description(
+                "Dispersione (Rischio)", 
+                viz.plot_returns_boxplot(),
+                "Il Boxplot visualizza la volatilità dei rendimenti giornalieri.<br><br>"
+                "La scatola centrale contiene il 50% dei dati. L'ampiezza della scatola e la lunghezza dei 'baffi' indicano il rischio. "
+                "I punti esterni sono valori anomali (outlier)."
+            )
+
+            # 3. Heatmap
+            render_plot_with_description(
+                "Correlazioni", 
+                viz.plot_correlation_heatmap(),
+                "La matrice di correlazione misura come i titoli si muovono insieme.<br><br>"
+                "<b>1.0:</b> Movimento identico.<br><b>0.0:</b> Nessun legame.<br><b>-1.0:</b> Movimento opposto.<br><br>"
+                "Utile per diversificare il portafoglio."
+            )
+
+            # 4. Histograms
+            render_plot_with_description(
+                "Distribuzioni", 
+                viz.plot_histogram_grid(),
+                "Gli istogrammi mostrano la frequenza dei rendimenti giornalieri.<br><br>"
+                "Una forma a campana indica normalità. Code lunghe o asimmetrie suggeriscono rischi di eventi estremi (code grasse) "
+                "non previsti dai modelli standard."
+            )
 
         # --- TAB 3: OTTIMIZZAZIONE ---
         with tab3:
@@ -528,7 +557,6 @@ def main():
             st.markdown("### Ottimizzazione di Portafoglio (Markowitz)")
             st.caption("Simulazione Monte Carlo su 5000 portafogli casuali.")
             
-            # Pulsante con Callback
             st.button("🚀 Avvia Ottimizzazione", on_click=run_optimization_callback)
             
             if st.session_state.opt_done:
@@ -554,10 +582,8 @@ def main():
                     st.write("### 🏗️ Allocazione")
                     
                     def make_weight_df(weights, tickers):
-                        # Moltiplica x100
                         df_w = pd.DataFrame({'Ticker': tickers, 'Peso': weights * 100})
                         df_w = df_w[df_w['Peso'] > 0.0001].sort_values('Peso', ascending=False)
-                        # Formatta direttamente come stringa per st.table
                         df_w['Peso'] = df_w['Peso'].apply(lambda x: f"{x:.2f}%")
                         return df_w.set_index('Ticker')
 
