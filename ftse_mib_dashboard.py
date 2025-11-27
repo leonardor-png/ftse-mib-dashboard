@@ -3,6 +3,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker # Import aggiunto per gestire gli assi
 import seaborn as sns
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
@@ -130,8 +131,8 @@ st.markdown("""
         margin-top: 10px;
         padding-top: 10px;
         border-top: 1px dashed #ccc;
-        max-height: 120px; /* Altezza limitata per evitare allungamento */
-        overflow-y: auto;  /* Scroll se la lista è lunga */
+        max-height: 120px;
+        overflow-y: auto;
         font-size: 0.85rem;
     }
     .legend-item {
@@ -177,17 +178,14 @@ class DataManager:
             "Tenaris": "TEN.MI", "Terna": "TRN.MI", "UniCredit": "UCG.MI", "Unipol": "UNI.MI"
         }
 
-    # NUOVO METODO: Restituisce mappa Ticker -> Nome Azienda
     def get_ticker_to_name_mapping(self):
         original_map = self._get_mapping()
-        # Inverte dizionario: {Ticker: Nome}
         return {v: k for k, v in original_map.items()}
 
     def get_top_10_tickers(self):
         mapping = self._get_mapping()
         all_tickers = list(mapping.values())
         market_caps = {}
-        
         progress_bar = st.progress(0, text="Calcolo Market Cap in tempo reale...")
         try:
             batch_data = yf.download(all_tickers, period="1d", progress=False)
@@ -319,6 +317,9 @@ class Visualizer:
         if self.bench is not None:
             bn = (self.bench / self.bench.iloc[0]) * 100
             ax.plot(bn.index, bn, label="FTSE MIB", color='#000000', ls='--', lw=2.5)
+        
+        # --- MODIFICA ASSE Y (STEP 100) ---
+        ax.yaxis.set_major_locator(mticker.MultipleLocator(100))
         
         ax.set_xlabel("")
         ax.grid(True, linestyle=':', alpha=0.4)
@@ -455,9 +456,7 @@ def main():
         return tickers, df, mapping
 
     with st.spinner("Scansione in tempo reale del mercato (potrebbe richiedere qualche secondo)..."):
-        # Modificato per ricevere 3 valori
         data_result = get_market_data()
-        # Gestione errore se data_result è None
         if data_result is None or data_result[0] is None:
             st.error("Errore recupero dati.")
             return
@@ -527,10 +526,8 @@ def main():
                     st.pyplot(fig)
                 
                 with col_text:
-                    # Costruzione HTML Legenda Ticker
                     legend_html = "<b>Legenda Ticker:</b><div class='legend-scroll-box'>"
                     for t in active_tickers:
-                        # Rimuovi .MI per pulizia
                         clean_t = t.replace(".MI", "")
                         name = mapping.get(t, "N/A")
                         legend_html += f"<div class='legend-item'><b>{clean_t}</b>: {name}</div>"
@@ -546,10 +543,8 @@ def main():
                 
                 st.markdown("---")
 
-            # I 10 ticker attuali per la legenda
             current_tickers = df_stocks.columns.tolist()
 
-            # 1. Normalized Prices
             render_plot_with_description(
                 "Performance Relativa", 
                 viz.plot_normalized_prices(),
@@ -557,7 +552,6 @@ def main():
                 current_tickers, ticker_mapping
             )
 
-            # 2. Boxplot
             render_plot_with_description(
                 "Dispersione (Rischio)", 
                 viz.plot_returns_boxplot(),
@@ -565,7 +559,6 @@ def main():
                 current_tickers, ticker_mapping
             )
 
-            # 3. Heatmap
             render_plot_with_description(
                 "Correlazioni", 
                 viz.plot_correlation_heatmap(),
@@ -573,7 +566,6 @@ def main():
                 current_tickers, ticker_mapping
             )
 
-            # 4. Histograms
             render_plot_with_description(
                 "Distribuzioni", 
                 viz.plot_histogram_grid(),
