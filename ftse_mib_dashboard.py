@@ -13,16 +13,15 @@ from scipy import stats
 # CONFIGURAZIONE INIZIALE E DIPENDENZE
 # =============================================================================
 # Imposta il layout della pagina su 'wide' per sfruttare tutto lo schermo
-# e definisce il titolo della tab del browser.
+# Definisce il titolo della tab del browser.
 st.set_page_config(page_title="FTSE MIB Dashboard", layout="wide", page_icon="📈")
 
 # =============================================================================
 # STYLING CSS PERSONALIZZATO
 # =============================================================================
-# Utilizziamo st.markdown con unsafe_allow_html per iniettare CSS avanzato.
+# Utilizziamo st.markdown con unsafe_allow_html per usare CSS avanzato.
 # Questo è necessario per sovrascrivere il tema di default di Streamlit e
-# ottenere l'aspetto "Financial Dashboard" richiesto (sfondo giallo chiaro, 
-# tabelle grigie, pulsanti custom).
+# ottenere l'aspetto "Financial Dashboard"
 st.markdown("""
 <style>
     /* Importazione Font Roboto per un look moderno e pulito */
@@ -363,7 +362,7 @@ class FinancialAnalyzer:
 
 # =============================================================================
 # CLASSE 3: VISUALIZER
-# Gestisce la creazione dei grafici con stile pulito e dimensioni ridotte.
+# Gestisce la creazione dei grafici
 # =============================================================================
 class Visualizer:
     def __init__(self, prices, returns, benchmark=None, non_norm_metrics=None):
@@ -387,7 +386,7 @@ class Visualizer:
             bn = (self.bench / self.bench.iloc[0]) * 100
             ax.plot(bn.index, bn, label="FTSE MIB", color='#000000', ls='--', lw=2.5)
         
-        # Asse Y diviso per 100 come richiesto
+        # Asse Y diviso per 100
         ax.yaxis.set_major_locator(mticker.MultipleLocator(100))
         
         ax.set_xlabel("")
@@ -413,7 +412,7 @@ class Visualizer:
         df_combined = df_combined.dropna()
         melt = df_combined.melt(var_name='Ticker', value_name='Rendimento')
         
-        # Aspect Ratio calibrato
+        # Calibrazione misure di aspetto
         g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=1.5, aspect=1.3)
         g.map_dataframe(sns.histplot, x="Rendimento", kde=True, color="#778899", edgecolor="white", linewidth=0.5)
         
@@ -721,3 +720,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
