@@ -3,6 +3,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker # IMPORT AGGIUNTO PER FIXARE L'ERRORE
 import seaborn as sns
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
@@ -45,6 +46,8 @@ st.markdown("""
     }
 
     /* 4. TABELLE - STILE IMPERATIVO */
+    
+    /* INTESTAZIONI (Colonna Top e Indice Sinistra) */
     div[data-testid="stTable"] table thead th, 
     div[data-testid="stTable"] table tbody th {
         background-color: #999999 !important; /* GRIGIO SCURO */
@@ -53,11 +56,15 @@ st.markdown("""
         border: 1px solid #ffffff !important; /* Bordo bianco */
         text-align: center !important;
     }
+
+    /* CELLE DATI (Corpo centrale) */
     div[data-testid="stTable"] table tbody td {
         background-color: #eeeeee !important; /* Grigio Chiaro */
         color: #000000 !important;            /* Testo NERO */
         border: 1px solid #ffffff !important;
     }
+
+    /* Contenitore Tabella */
     div[data-testid="stTable"] {
         border: 1px solid #999999;
         border-radius: 4px;
@@ -139,7 +146,7 @@ st.markdown("""
         line-height: 1.2;
     }
     
-    /* BOX EXPLAINER FRONTIERA (Nuovo) */
+    /* BOX EXPLAINER FRONTIERA */
     .frontier-explainer {
         background-color: #ffffff;
         border: 1px solid #999;
@@ -147,6 +154,7 @@ st.markdown("""
         padding: 15px;
         margin-top: 10px;
         font-size: 0.9rem;
+        color: #000000;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -306,7 +314,7 @@ class FinancialAnalyzer:
         return res
 
 # =============================================================================
-# CLASSE 3: VISUALIZER
+# CLASSE 3: VISUALIZER (SENZA TITOLI)
 # =============================================================================
 class Visualizer:
     def __init__(self, prices, returns, benchmark=None, non_norm_metrics=None):
@@ -328,7 +336,9 @@ class Visualizer:
             bn = (self.bench / self.bench.iloc[0]) * 100
             ax.plot(bn.index, bn, label="FTSE MIB", color='#000000', ls='--', lw=2.5)
         
+        # FIX ASSE Y (STEP 100)
         ax.yaxis.set_major_locator(mticker.MultipleLocator(100))
+        
         ax.set_xlabel("")
         ax.grid(True, linestyle=':', alpha=0.4)
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', frameon=False, fontsize='small')
@@ -350,15 +360,18 @@ class Visualizer:
         df_combined = df_combined.dropna()
         melt = df_combined.melt(var_name='Ticker', value_name='Rendimento')
         
+        # FacetGrid con aspect ratio bilanciato per la nuova dimensione
         g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=1.5, aspect=1.3)
         g.map_dataframe(sns.histplot, x="Rendimento", kde=True, color="#778899", edgecolor="white", linewidth=0.5)
         
+        # TITOLI TICKER PIU PICCOLI
         g.set_titles("{col_name}", fontweight='bold', size=8)
         
         g.set_axis_labels("", "")
         for ax in g.axes.flat:
             ax.set_xlabel("")
             ax.set_ylabel("")
+            # TICKS MOLTO PICCOLI
             ax.tick_params(axis='both', which='major', labelsize=6)
             
         g.despine(left=True)
@@ -563,28 +576,40 @@ def main():
             render_plot_with_description(
                 "Performance Relativa", 
                 viz.plot_normalized_prices(),
-                "Mostra l'andamento dei prezzi su base 100. Utile per confrontare la crescita cumulativa.",
+                "Questo grafico normalizza il prezzo di tutti i titoli a quota 100 all'inizio del periodo. "
+                "Permette di confrontare la <b>performance percentuale cumulativa</b> indipendentemente dal valore nominale dell'azione.<br><br>"
+                "Ad esempio, se una linea raggiunge 110, significa che il titolo ha guadagnato il 10% nel periodo osservato.",
                 current_tickers, ticker_mapping
             )
 
             render_plot_with_description(
                 "Dispersione (Rischio)", 
                 viz.plot_returns_boxplot(),
-                "Visualizza la volatilità e gli outlier dei rendimenti giornalieri.",
+                "Il Boxplot visualizza la distribuzione dei rendimenti giornalieri.<br><br>"
+                "<b>Scatola centrale:</b> Contiene il 50% dei dati centrali. Più è alta, più il titolo è volatile.<br>"
+                "<b>Linea interna:</b> Mediana dei rendimenti.<br>"
+                "<b>Punti esterni (Baffi):</b> Eventi estremi o anomali (outlier) positivi o negativi.",
                 current_tickers, ticker_mapping
             )
 
             render_plot_with_description(
                 "Correlazioni", 
                 viz.plot_correlation_heatmap(),
-                "Misura quanto i titoli si muovono insieme. 1 = identico, -1 = opposto.",
+                "Mostra come i titoli si muovono l'uno rispetto all'altro.<br><br>"
+                "<b>+1 (Rosso):</b> Si muovono in modo identico.<br>"
+                "<b>0 (Bianco):</b> Nessuna relazione.<br>"
+                "<b>-1 (Blu):</b> Si muovono in direzioni opposte.<br><br>"
+                "Utile per la diversificazione del portafoglio.",
                 current_tickers, ticker_mapping
             )
 
             render_plot_with_description(
                 "Distribuzioni", 
                 viz.plot_histogram_grid(),
-                "Frequenza dei rendimenti giornalieri. Indica la normalità della distribuzione.",
+                "Mostra la frequenza dei rendimenti giornalieri per ogni titolo.<br><br>"
+                "<b>Campana simmetrica:</b> Distribuzione Normale (prevedibile).<br>"
+                "<b>Code lunghe (Fat Tails):</b> Indicano che eventi estremi (crolli o boom) sono più frequenti del previsto.<br>"
+                "<b>Sbilanciamento:</b> Tendenza a rendimenti positivi o negativi.",
                 current_tickers, ticker_mapping
             )
 
@@ -614,7 +639,7 @@ def main():
                 
                 with col_plot:
                     st.pyplot(opt_obj.plot_efficient_frontier(max_pt, min_pt))
-                    # SPIEGAZIONE AGGIUNTA QUI SOTTO IL GRAFICO
+                    # SPIEGAZIONE AGGIUNTA
                     st.markdown("""
                     <div class="frontier-explainer">
                         <b>Nota Metodologica:</b> Il grafico utilizza il modello <i>Mean-Variance</i> (Markowitz) con simulazione Monte Carlo.<br>
