@@ -11,7 +11,7 @@ from scipy import stats
 # --- CONFIGURAZIONE PAGINA ---
 st.set_page_config(page_title="FTSE MIB Dashboard", layout="wide", page_icon="📈")
 
-# --- CUSTOM CSS (STILE FORZATO) ---
+# --- CUSTOM CSS (STILE FORZATO CON PRIORITÀ ALTA) ---
 st.markdown("""
 <style>
     /* Importa font */
@@ -25,7 +25,7 @@ st.markdown("""
     /* 2. TESTI GLOBALI */
     html, body, p, li, div, span, label, h1, h2, h3, h4, h5, h6 {
         font-family: 'Roboto', sans-serif;
-        color: #000000 !important; /* Testo Nero ovunque */
+        color: #000000 !important; /* Testo Nero */
     }
 
     /* 3. CARD TITOLO */
@@ -44,30 +44,29 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* 4. TABELLE - REGOLE CSS SPECIFICHE */
-    /* Forza il colore su tutte le tabelle statiche (st.table) */
+    /* 4. TABELLE - STILE FORZATO "IMPERATIVE" */
     
-    /* INTESTAZIONI (Colonna e Indice Riga) */
+    /* INTESTAZIONI (Header in alto e Indice a sinistra) */
     thead tr th, tbody th {
-        background-color: #aaaaaa !important; /* Grigio Medio/Scuro */
-        color: #000000 !important;            /* Testo NERO */
+        background-color: #333333 !important; /* GRIGIO SCURO */
+        color: #ffffff !important;            /* TESTO BIANCO */
         font-weight: 900 !important;          /* Grassetto */
-        border: 1px solid #ffffff !important; /* Bordo bianco */
+        border: 1px solid #555555 !important;
         text-align: center !important;
     }
 
-    /* CELLE DATI (Corpo) */
+    /* CELLE DATI (Corpo centrale) */
     tbody tr td {
-        background-color: #eeeeee !important; /* Grigio Chiaro */
-        color: #000000 !important;            /* Testo NERO */
-        border: 1px solid #ffffff !important;
+        background-color: #eeeeee !important; /* GRIGIO CHIARO */
+        color: #000000 !important;            /* TESTO NERO */
+        border: 1px solid #cccccc !important;
     }
 
-    /* Contenitore Tabella */
+    /* Contenitore generale tabella */
     div[data-testid="stTable"] {
-        border: 1px solid #999999;
+        border: 1px solid #999;
         border-radius: 4px;
-        overflow: hidden;
+        overflow: hidden; 
     }
 
     /* 5. STILE PULSANTI TAB */
@@ -81,6 +80,11 @@ st.markdown("""
         background-color: #c0c0c0 !important;
         border: 1px solid #666 !important;
         color: #000000 !important;
+    }
+    div[data-testid="stTabs"] > div > div {
+        box-shadow: none !important;
+        border-bottom: none !important;
+        gap: 0px;
     }
 
     /* 6. PULSANTI STANDARD */
@@ -293,6 +297,7 @@ class Visualizer:
             bn = (self.bench / self.bench.iloc[0]) * 100
             ax.plot(bn.index, bn, label="FTSE MIB", color='#000000', ls='--', lw=2.5)
         ax.set_title("Performance Relativa (Base 100)", fontweight='bold', pad=15)
+        ax.set_xlabel("")
         ax.grid(True, linestyle=':', alpha=0.4)
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', frameon=False)
         plt.tight_layout()
@@ -393,6 +398,7 @@ class PortfolioOptimizer:
 # MAIN FUNCTION
 # =============================================================================
 def main():
+    # --- HEADER ---
     col_title, col_btn = st.columns([5, 1])
     
     with col_title:
@@ -452,11 +458,23 @@ def main():
 
         tab1, tab2, tab3 = st.tabs(["Statistiche Avanzate", "Analisi Grafica", "Frontiera Efficiente"])
 
-        # --- TAB 1: TABELLE (USA st.table PER FORZARE I COLORI) ---
+        # --- FUNZIONE CALLBACK PER OTTIMIZZAZIONE (Fix Tab Jumping) ---
+        def run_optimization_callback():
+            opt = PortfolioOptimizer(rets)
+            res_max, res_min, w_max, w_min = opt.simulate()
+            st.session_state.opt_max = res_max
+            st.session_state.opt_min = res_min
+            st.session_state.opt_w_max = w_max
+            st.session_state.opt_w_min = w_min
+            st.session_state.opt_obj = opt
+            st.session_state.opt_done = True
+
+        # --- TAB 1: TABELLE ---
         with tab1:
             st.markdown("<hr class='custom-divider'>", unsafe_allow_html=True)
             
             st.subheader("1. Performance e Volatilità")
+            # st.table FORZA IL CSS
             st.table(t1.style.format("{:.2%}", subset=['Media Geom. (Ann)', 'Media Giorn.', 'Dev.Std', 'Varianza']))
 
             st.subheader("2. Analisi del Rischio")
@@ -494,15 +512,8 @@ def main():
             st.markdown("### Ottimizzazione di Portafoglio (Markowitz)")
             st.caption("Simulazione Monte Carlo su 5000 portafogli casuali.")
             
-            if st.button("🚀 Avvia Ottimizzazione"):
-                opt = PortfolioOptimizer(rets)
-                res_max, res_min, w_max, w_min = opt.simulate()
-                st.session_state.opt_max = res_max
-                st.session_state.opt_min = res_min
-                st.session_state.opt_w_max = w_max
-                st.session_state.opt_w_min = w_min
-                st.session_state.opt_obj = opt
-                st.session_state.opt_done = True
+            # Bottone con Callback
+            st.button("🚀 Avvia Ottimizzazione", on_click=run_optimization_callback)
             
             if st.session_state.opt_done:
                 max_pt = st.session_state.opt_max
@@ -537,7 +548,6 @@ def main():
 
                     t1, t2 = st.tabs(["Max Sharpe", "Min Volatility"])
                     
-                    # Usa st.table per ereditare lo stile grigio/nero
                     with t1:
                         st.table(df_w_max)
                     with t2:
