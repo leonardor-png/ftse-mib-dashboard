@@ -323,7 +323,7 @@ class Visualizer:
         g.map_dataframe(sns.histplot, x="Rendimento", kde=True, color="#778899", edgecolor="white", linewidth=0.5)
         g.set_titles("{col_name}", fontweight='bold')
         
-        # --- MODIFICA QUI: RIMOZIONE TOTALE ETICHETTE ---
+        # RIMOZIONE ETICHETTE ASSI
         g.set_axis_labels("", "")
         for ax in g.axes.flat:
             ax.set_xlabel("")
@@ -406,6 +406,7 @@ class PortfolioOptimizer:
 # MAIN FUNCTION
 # =============================================================================
 def main():
+    # --- HEADER ---
     col_title, col_btn = st.columns([5, 1])
     
     with col_title:
@@ -498,19 +499,21 @@ def main():
         # --- TAB 2: GRAFICI ---
         with tab2:
             st.markdown("<hr class='custom-divider'>", unsafe_allow_html=True)
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write("**Performance Relativa**")
-                st.pyplot(viz.plot_normalized_prices())
-                st.markdown("---")
-                st.write("**Dispersione (Rischio)**")
-                st.pyplot(viz.plot_returns_boxplot())
-            with col2:
-                st.write("**Correlazioni**")
-                st.pyplot(viz.plot_correlation_heatmap())
-                st.markdown("---")
-                st.write("**Distribuzioni**")
-                st.pyplot(viz.plot_histogram_grid())
+            
+            st.write("**Performance Relativa**")
+            st.pyplot(viz.plot_normalized_prices())
+            st.markdown("---")
+            
+            st.write("**Dispersione (Rischio)**")
+            st.pyplot(viz.plot_returns_boxplot())
+            st.markdown("---")
+            
+            st.write("**Correlazioni**")
+            st.pyplot(viz.plot_correlation_heatmap())
+            st.markdown("---")
+            
+            st.write("**Distribuzioni**")
+            st.pyplot(viz.plot_histogram_grid())
 
         # --- TAB 3: OTTIMIZZAZIONE ---
         with tab3:
@@ -544,8 +547,10 @@ def main():
                     st.write("### 🏗️ Allocazione")
                     
                     def make_weight_df(weights, tickers):
+                        # Moltiplica x100
                         df_w = pd.DataFrame({'Ticker': tickers, 'Peso': weights * 100})
                         df_w = df_w[df_w['Peso'] > 0.0001].sort_values('Peso', ascending=False)
+                        # Formatta direttamente come stringa per st.table
                         df_w['Peso'] = df_w['Peso'].apply(lambda x: f"{x:.2f}%")
                         return df_w.set_index('Ticker')
 
