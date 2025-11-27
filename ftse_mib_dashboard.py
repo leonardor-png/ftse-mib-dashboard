@@ -3,7 +3,6 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker # Import aggiunto per gestire gli assi
 import seaborn as sns
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
@@ -186,6 +185,7 @@ class DataManager:
         mapping = self._get_mapping()
         all_tickers = list(mapping.values())
         market_caps = {}
+        
         progress_bar = st.progress(0, text="Calcolo Market Cap in tempo reale...")
         try:
             batch_data = yf.download(all_tickers, period="1d", progress=False)
@@ -318,9 +318,6 @@ class Visualizer:
             bn = (self.bench / self.bench.iloc[0]) * 100
             ax.plot(bn.index, bn, label="FTSE MIB", color='#000000', ls='--', lw=2.5)
         
-        # --- MODIFICA ASSE Y (STEP 100) ---
-        ax.yaxis.set_major_locator(mticker.MultipleLocator(100))
-        
         ax.set_xlabel("")
         ax.grid(True, linestyle=':', alpha=0.4)
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', frameon=False, fontsize='small')
@@ -451,7 +448,6 @@ def main():
         tickers = dm.get_top_10_tickers()
         if not tickers: return None, None
         df = dm.download_historical_data(tickers)
-        # Recupera anche il mapping per la legenda
         mapping = dm.get_ticker_to_name_mapping()
         return tickers, df, mapping
 
@@ -518,7 +514,6 @@ def main():
         with tab2:
             st.markdown("<hr class='custom-divider'>", unsafe_allow_html=True)
             
-            # Helper function per layout: Grafico SX (2 parti) | Testo+Legenda DX (1 parte)
             def render_plot_with_description(title, fig, description, active_tickers, mapping):
                 col_chart, col_text = st.columns([2, 1])
                 
@@ -545,31 +540,47 @@ def main():
 
             current_tickers = df_stocks.columns.tolist()
 
+            # 1. Performance Relativa
             render_plot_with_description(
                 "Performance Relativa", 
                 viz.plot_normalized_prices(),
-                "Mostra l'andamento dei prezzi su base 100. Utile per confrontare la crescita cumulativa.",
+                "Questo grafico normalizza il prezzo di tutti i titoli a quota 100 all'inizio del periodo. "
+                "Permette di confrontare la <b>performance percentuale cumulativa</b> indipendentemente dal valore nominale dell'azione.<br><br>"
+                "Ad esempio, se una linea raggiunge 110, significa che il titolo ha guadagnato il 10% nel periodo osservato.",
                 current_tickers, ticker_mapping
             )
 
+            # 2. Boxplot
             render_plot_with_description(
                 "Dispersione (Rischio)", 
                 viz.plot_returns_boxplot(),
-                "Visualizza la volatilità e gli outlier dei rendimenti giornalieri.",
+                "Il Boxplot visualizza la distribuzione dei rendimenti giornalieri.<br><br>"
+                "<b>Scatola centrale:</b> Contiene il 50% dei dati centrali. Più è alta, più il titolo è volatile.<br>"
+                "<b>Linea interna:</b> Mediana dei rendimenti.<br>"
+                "<b>Punti esterni (Baffi):</b> Eventi estremi o anomali (outlier) positivi o negativi.",
                 current_tickers, ticker_mapping
             )
 
+            # 3. Heatmap
             render_plot_with_description(
                 "Correlazioni", 
                 viz.plot_correlation_heatmap(),
-                "Misura quanto i titoli si muovono insieme. 1 = identico, -1 = opposto.",
+                "Mostra come i titoli si muovono l'uno rispetto all'altro.<br><br>"
+                "<b>+1 (Rosso):</b> Si muovono in modo identico.<br>"
+                "<b>0 (Bianco):</b> Nessuna relazione.<br>"
+                "<b>-1 (Blu):</b> Si muovono in direzioni opposte.<br><br>"
+                "Utile per la diversificazione del portafoglio.",
                 current_tickers, ticker_mapping
             )
 
+            # 4. Histograms
             render_plot_with_description(
                 "Distribuzioni", 
                 viz.plot_histogram_grid(),
-                "Frequenza dei rendimenti giornalieri. Indica la normalità della distribuzione.",
+                "Mostra la frequenza dei rendimenti giornalieri per ogni titolo.<br><br>"
+                "<b>Campana simmetrica:</b> Distribuzione Normale (prevedibile).<br>"
+                "<b>Code lunghe (Fat Tails):</b> Indicano che eventi estremi (crolli o boom) sono più frequenti del previsto.<br>"
+                "<b>Sbilanciamento:</b> Tendenza a rendimenti positivi o negativi.",
                 current_tickers, ticker_mapping
             )
 
