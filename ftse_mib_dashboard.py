@@ -250,7 +250,7 @@ class DataManager:
             else:
                 last_prices = batch_data.iloc[-1]
             
-            # Loop per scaricare metadati (shares) - più lento
+            # Loop per scaricare metadati (shares) - più lento per evitare il blocco di yahoo finance
             total_tickers = len(all_tickers)
             for i, ticker in enumerate(all_tickers):
                 progress_bar.progress((i + 1) / total_tickers, text=f"Analisi ticker: {ticker}")
@@ -329,6 +329,7 @@ class FinancialAnalyzer:
         return df_calc
 
     def get_table_1_central_metrics(self):
+        """Crea la tabella 1 e calcola statistiche fondamentali"""
         df_calc = self._prepare_stats_dataframe()
         stats_df = df_calc.agg(['median', 'std', 'var', 'mean']).T
         stats_df['Media Geom. (Ann)'] = df_calc.apply(lambda x: (stats.gmean(x + 1)**252 - 1) if len(x) > 0 else 0)
@@ -336,6 +337,7 @@ class FinancialAnalyzer:
         return stats_df[['Media Geom. (Ann)', 'Media Giorn.', 'Mediana', 'Dev.Std', 'Varianza']]
 
     def get_table_2_risk_extremes(self):
+        """Crea la tabella 2 calcolando altre statistiche fondamentali"""
         df_calc = self._prepare_stats_dataframe()
         stats_df = df_calc.agg(['min', 'max']).T
         stats_df['Range'] = stats_df['max'] - stats_df['min']
@@ -350,12 +352,14 @@ class FinancialAnalyzer:
         return stats_df[['Min', 'Max', 'Range', 'Max Drawdown', 'Cov. Mkt', 'Corr. Mkt']]
 
     def get_table_3_non_normality(self):
+        """Crea la tabella per i dati della distribuzione normale"""
         df_calc = self._prepare_stats_dataframe()
         non_norm = df_calc.agg(['skew', 'kurt']).T
         non_norm.rename(columns={'skew': 'Asimmetria', 'kurt': 'Curtosi'}, inplace=True)
         return non_norm
 
     def get_jarque_bera_test(self):
+        """Crea una tabella in cui viene eseguito il test statistico per valutare se i rendimenti dei titoli hanno distribuzione normale"""
         res = pd.DataFrame({'p-value': self.returns.apply(lambda x: stats.jarque_bera(x)[1])})
         res['Esito'] = np.where(res['p-value'] > 0.05, "NORMALE", "NON NORMALE")
         return res
@@ -405,7 +409,7 @@ class Visualizer:
         return self._add_border(fig)
 
     def plot_histogram_grid(self):
-        """Small Multiples per istogrammi."""
+        """Creazione di grafico di distribuzione dei rendimenti tramite normale, con istogramma separato per titolo ."""
         df_combined = self.returns.copy()
         if self.bench is not None:
              df_combined['FTSE MIB'] = self.bench.pct_change().dropna()
@@ -423,7 +427,7 @@ class Visualizer:
         for ax in g.axes.flat:
             ax.set_xlabel("")
             ax.set_ylabel("")
-            # Etichette assi molto piccole per evitare sovrapposizioni
+            # Etichette assi più piccole per evitare sovrapposizioni
             ax.tick_params(axis='both', which='major', labelsize=6)
             
         g.despine(left=True)
@@ -434,7 +438,7 @@ class Visualizer:
         g.fig.legend(handles=legend_elements, loc='lower right', fontsize=8, bbox_to_anchor=(0.95, 0.05), frameon=False)
         plt.subplots_adjust(top=0.9, hspace=0.4, wspace=0.3)
         
-        # Bordo alla figura FacetGrid
+        # Bordi grigi ai grafici
         g.fig.patch.set_linewidth(1.5)
         g.fig.patch.set_edgecolor('#999999')
         return g.fig
@@ -452,12 +456,14 @@ class Visualizer:
 # =============================================================================
 class PortfolioOptimizer:
     def __init__(self, returns_df, num_portfolios=5000):
+        """Configura l'ambiente per la simulazione Monte Carlo (input dati e parametri iniziali)"""
         self.ret = returns_df
         self.n = num_portfolios
         self.results = None
         self.weights = [] 
 
     def simulate(self):
+        """Calcola le metriche statistiche fondamentali (media e covarianza) e imposta la riproducibilità (seed) prima di avviare il calcolo dei portafogli."""
         np.random.seed(42)
         mean_daily = self.ret.mean()
         cov_matrix = self.ret.cov()
@@ -466,6 +472,7 @@ class PortfolioOptimizer:
         weights_list = [] 
 
         for _ in range(self.n):
+            """Esegue il ciclo Monte Carlo: genera pesi casuali normalizzati e calcola rendimento, volatilità e Sharpe Ratio per ogni portafoglio simulato."""
             w = np.random.random(n_assets)
             w /= np.sum(w)
             ret_ann = np.sum(mean_daily * w) * 252
@@ -473,7 +480,7 @@ class PortfolioOptimizer:
             sharpe = ret_ann / vol_ann if vol_ann > 0 else 0
             results_list.append([ret_ann, vol_ann, sharpe])
             weights_list.append(w)
-            
+        # Individua i due portafogli Max Sharpe e Min Vol, estraendone le metriche e la composizione   
         self.results = pd.DataFrame(results_list, columns=['Rendimento', 'Volatilità', 'Sharpe'])
         self.weights = np.array(weights_list)
         max_sharpe_idx = self.results['Sharpe'].idxmax()
@@ -507,7 +514,7 @@ class PortfolioOptimizer:
 # =============================================================================
 def main():
     col_title, col_btn = st.columns([5, 1])
-    
+    # Intestazione (header) della dashboard con HTML per applicare uno stile grafico e un layout
     with col_title:
         st.markdown("""
             <div class="title-card">
@@ -515,14 +522,14 @@ def main():
                 <p>ANALISI FINANZIARIA AUTOMATIZZATA SUI TOP PLAYER DEL MERCATO ITALIANO.</p>
             </div>
         """, unsafe_allow_html=True)
-    
+    # Inserisce un pulsante di 'Refresh' allineato verticalmente, che permette di ricaricare l'intera applicazione per ottenere dati aggiornati
     with col_btn:
         st.write("") 
         st.write("") 
         if st.button("🔄 Aggiorna Dati"):
             st.cache_data.clear()
             st.rerun()
-    
+    # Setup della memoria persistente per evitare di perdere i dati della simulazione ad ogni interazione dell'utente
     if 'opt_done' not in st.session_state:
         st.session_state.opt_done = False
         st.session_state.opt_max = None
@@ -530,7 +537,8 @@ def main():
         st.session_state.opt_w_max = None
         st.session_state.opt_w_min = None
         st.session_state.opt_obj = None
-
+    
+    # Recupera i dati di mercato (ticker, storico prezzi e nomi completi) sfruttando il sistema di caching di Streamlit per evitare download ridondanti per 1 ora (3600s)
     @st.cache_data(ttl=3600)
     def get_market_data():
         dm = DataManager()
@@ -539,7 +547,7 @@ def main():
         df = dm.download_historical_data(tickers)
         mapping = dm.get_ticker_to_name_mapping()
         return tickers, df, mapping
-
+    # Esegue il recupero dati mostrando un indicatore di caricamento all'utente e gestisce eventuali fallimenti bloccando l'esecuzione in caso di errore
     with st.spinner("Scansione in tempo reale del mercato (potrebbe richiedere qualche secondo)..."):
         data_result = get_market_data()
         if data_result is None or data_result[0] is None:
@@ -547,6 +555,7 @@ def main():
             return
         tickers, df_tot, ticker_mapping = data_result
 
+    # Separa l'indice di riferimento (FTSE MIB) delle singole azioni e inizializza il motore di analisi calcolando i rendimenti iniziali
     if df_tot is not None and not df_tot.empty:
         bench = None
         df_stocks = df_tot.copy()
@@ -556,7 +565,8 @@ def main():
         
         an = FinancialAnalyzer(df_stocks, bench)
         rets = an.calculate_returns()
-        
+
+        # Valida i dati, esegue tutti i calcoli statistici necessari, inizializza il motore grafico e organizza il layout della pagina in tre schede tematiche
         if rets.empty:
             st.error("Dati insufficienti per i calcoli.")
             return
@@ -569,7 +579,7 @@ def main():
         viz = Visualizer(df_stocks, rets, bench, non_norm_metrics=t3)
 
         tab1, tab2, tab3 = st.tabs(["Statistiche Avanzate", "Analisi Grafica", "Frontiera Efficiente"])
-
+        # Funzione di callback: esegue la simulazione di portafoglio e salva i risultati della sessione per renderli persistenti e accessibili all'interfaccia
         def run_optimization_callback():
             opt = PortfolioOptimizer(rets)
             res_max, res_min, w_max, w_min = opt.simulate()
@@ -726,6 +736,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
