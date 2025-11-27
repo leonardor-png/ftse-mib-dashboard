@@ -3,33 +3,46 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker # IMPORT AGGIUNTO PER FIXARE L'ERRORE
+import matplotlib.ticker as mticker
 import seaborn as sns
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from scipy import stats
 
-# --- CONFIGURAZIONE PAGINA ---
+# =============================================================================
+# CONFIGURAZIONE INIZIALE E DIPENDENZE
+# =============================================================================
+# Imposta il layout della pagina su 'wide' per sfruttare tutto lo schermo
+# e definisce il titolo della tab del browser.
 st.set_page_config(page_title="FTSE MIB Dashboard", layout="wide", page_icon="📈")
 
-# --- CUSTOM CSS (STILE FORZATO) ---
+# =============================================================================
+# STYLING CSS PERSONALIZZATO
+# =============================================================================
+# Utilizziamo st.markdown con unsafe_allow_html per iniettare CSS avanzato.
+# Questo è necessario per sovrascrivere il tema di default di Streamlit e
+# ottenere l'aspetto "Financial Dashboard" richiesto (sfondo giallo chiaro, 
+# tabelle grigie, pulsanti custom).
 st.markdown("""
 <style>
-    /* Importa font */
+    /* Importazione Font Roboto per un look moderno e pulito */
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
     
     /* 1. SFONDO GENERALE */
+    /* Imposta il colore di sfondo dell'intera applicazione su un giallo pastello molto chiaro */
     .stApp {
-        background-color: #FFFDE7; /* Giallo chiaro */
+        background-color: #FFFDE7; 
     }
     
-    /* 2. TESTI GLOBALI */
+    /* 2. TIPOGRAFIA GLOBALE */
+    /* Forza il colore del testo a nero per garantire massimo contrasto */
     html, body, p, li, div, span, label, h1, h2, h3, h4, h5, h6 {
         font-family: 'Roboto', sans-serif;
-        color: #000000 !important; /* Testo Nero ovunque */
+        color: #000000 !important; 
     }
 
-    /* 3. CARD TITOLO */
+    /* 3. CARD DEL TITOLO PRINCIPALE */
+    /* Box grigio con bordi arrotondati per racchiudere titolo e sottotitolo */
     .title-card {
         background-color: #e0e0e0;
         border: 1px solid #d1d1d1;
@@ -45,51 +58,56 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* 4. TABELLE - STILE IMPERATIVO */
+    /* 4. STYLING AVANZATO DELLE TABELLE (st.table) */
+    /* Utilizziamo selettori specifici per forzare i colori delle intestazioni e delle celle,
+       bypassando le impostazioni di default del tema Streamlit */
     
-    /* INTESTAZIONI (Colonna Top e Indice Sinistra) */
+    /* Intestazioni (Header in alto e Indice a sinistra) */
     div[data-testid="stTable"] table thead th, 
     div[data-testid="stTable"] table tbody th {
-        background-color: #999999 !important; /* GRIGIO SCURO */
-        color: #000000 !important;            /* TESTO NERO */
+        background-color: #999999 !important; /* Grigio Scuro/Medio */
+        color: #000000 !important;            /* Testo Nero */
         font-weight: 900 !important;          /* Grassetto */
-        border: 1px solid #ffffff !important; /* Bordo bianco */
+        border: 1px solid #ffffff !important; /* Bordo bianco per separazione */
         text-align: center !important;
     }
 
-    /* CELLE DATI (Corpo centrale) */
+    /* Celle Dati (Corpo centrale) */
     div[data-testid="stTable"] table tbody td {
         background-color: #eeeeee !important; /* Grigio Chiaro */
-        color: #000000 !important;            /* Testo NERO */
+        color: #000000 !important;            /* Testo Nero */
         border: 1px solid #ffffff !important;
     }
 
-    /* Contenitore Tabella */
+    /* Contenitore esterno della tabella */
     div[data-testid="stTable"] {
         border: 1px solid #999999;
         border-radius: 4px;
         overflow: hidden;
     }
 
-    /* 5. STILE PULSANTI TAB */
+    /* 5. PULSANTI DI NAVIGAZIONE (TAB) */
+    /* Stile personalizzato per sembrare pulsanti fisici invece che link */
     button[data-baseweb="tab"] {
         background-color: #e0e0e0; 
         border: 1px solid #d1d1d1;
         color: #000000;
         font-weight: bold;
     }
+    /* Stato Attivo: Grigio più scuro, mantiene il testo nero */
     button[data-baseweb="tab"][aria-selected="true"] {
         background-color: #c0c0c0 !important;
         border: 1px solid #666 !important;
         color: #000000 !important;
     }
+    /* Rimuove la linea decorativa standard di Streamlit */
     div[data-testid="stTabs"] > div > div {
         box-shadow: none !important;
         border-bottom: none !important;
         gap: 0px;
     }
 
-    /* 6. PULSANTI STANDARD */
+    /* 6. PULSANTI STANDARD (Avvia Ottimizzazione / Aggiorna) */
     div.stButton > button {
         background-color: #e0e0e0;
         color: #000000;
@@ -102,7 +120,7 @@ st.markdown("""
         background-color: #dcdcdc;
     }
 
-    /* 7. BOX METRICHE */
+    /* 7. BOX METRICHE KPI */
     .metrics-card {
         background-color: #e0e0e0;
         border: 1px solid #999;
@@ -115,7 +133,8 @@ st.markdown("""
         color: #000000 !important;
     }
     
-    /* DIVISORE */
+    /* 8. ELEMENTI UTILITY */
+    /* Linea divisoria personalizzata */
     hr.custom-divider {
         margin-top: 0px;
         margin-bottom: 25px;
@@ -123,7 +142,7 @@ st.markdown("""
         border-top: 2px solid #999;
     }
     
-    /* BOX DESCRIZIONE GRAFICO + LEGENDA */
+    /* Contenitore per descrizione grafico e legenda */
     .chart-desc-container {
         background-color: #ffffff;
         border-left: 4px solid #999;
@@ -133,6 +152,7 @@ st.markdown("""
         display: flex;
         flex-direction: column;
     }
+    /* Box scrollabile per la legenda dei ticker */
     .legend-scroll-box {
         margin-top: 10px;
         padding-top: 10px;
@@ -146,7 +166,7 @@ st.markdown("""
         line-height: 1.2;
     }
     
-    /* BOX EXPLAINER FRONTIERA */
+    /* Box esplicativo per la frontiera efficiente */
     .frontier-explainer {
         background-color: #ffffff;
         border: 1px solid #999;
@@ -159,11 +179,17 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- CONFIGURAZIONE GRAFICI ---
+# =============================================================================
+# CONFIGURAZIONE GRAFICI (MATPLOTLIB & SEABORN)
+# =============================================================================
 sns.set_theme(style="ticks", context="notebook")
+# Dimensione ridotta (6.0, 3.5) per visualizzazione compatta
 plt.rcParams['figure.figsize'] = (6.0, 3.5)
+# Colore di sfondo esterno (match con il sito)
 plt.rcParams['figure.facecolor'] = '#FFFDE7' 
+# Colore interno del grafico (bianco per contrasto dati)
 plt.rcParams['axes.facecolor'] = '#FFFFFF'
+# Colori testi e assi
 plt.rcParams['text.color'] = '#000000'
 plt.rcParams['axes.labelcolor'] = '#000000'
 plt.rcParams['xtick.color'] = '#000000'
@@ -173,13 +199,19 @@ plt.rcParams['axes.linewidth'] = 1
 
 # =============================================================================
 # CLASSE 1: DATA MANAGER
+# Gestisce il recupero dati, la pulizia e il calcolo della classifica.
 # =============================================================================
 class DataManager:
+    """
+    Classe responsabile per l'interazione con le API di Yahoo Finance.
+    Gestisce il download dei prezzi e il calcolo real-time della Capitalizzazione.
+    """
     def __init__(self, benchmark="FTSEMIB.MI", start_date="2019-01-01"):
         self.benchmark = benchmark
         self.start_date = start_date
 
     def _get_mapping(self):
+        """Restituisce il dizionario completo dei ticker del paniere FTSE MIB."""
         return {
             "A2A": "A2A.MI", "Amplifon": "AMP.MI", "Generali": "G.MI",
             "Azimut": "AZM.MI", "Banca Mediolanum": "BMED.MI", "Banca Pop. Sondrio": "BPSO.MI",
@@ -196,22 +228,30 @@ class DataManager:
         }
 
     def get_ticker_to_name_mapping(self):
+        """Restituisce una mappa inversa {Ticker: Nome Azienda} per la legenda."""
         original_map = self._get_mapping()
         return {v: k for k, v in original_map.items()}
 
     def get_top_10_tickers(self):
+        """
+        Calcola la Top 10 per Market Cap in tempo reale.
+        Scarica il numero di azioni (shares) e il prezzo live per ogni titolo.
+        """
         mapping = self._get_mapping()
         all_tickers = list(mapping.values())
         market_caps = {}
         
+        # Feedback visivo per l'utente durante il download
         progress_bar = st.progress(0, text="Calcolo Market Cap in tempo reale...")
         try:
+            # Batch download dei prezzi (veloce)
             batch_data = yf.download(all_tickers, period="1d", progress=False)
             if 'Close' in batch_data.columns:
                 last_prices = batch_data['Close'].iloc[-1]
             else:
                 last_prices = batch_data.iloc[-1]
             
+            # Loop per scaricare metadati (shares) - più lento
             total_tickers = len(all_tickers)
             for i, ticker in enumerate(all_tickers):
                 progress_bar.progress((i + 1) / total_tickers, text=f"Analisi ticker: {ticker}")
@@ -223,7 +263,9 @@ class DataManager:
                     if shares > 0 and price > 0:
                         market_caps[ticker] = price * shares
                 except: continue
+            
             progress_bar.empty()
+            # Ordinamento decrescente
             sorted_caps = dict(sorted(market_caps.items(), key=lambda item: item[1], reverse=True))
             return list(sorted_caps.keys())[:10]
         except Exception as e:
@@ -231,9 +273,11 @@ class DataManager:
             return []
 
     def download_historical_data(self, tickers):
+        """Scarica i prezzi storici chiusi aggiustati."""
         full_list = tickers + [self.benchmark]
         try:
             raw_data = yf.download(full_list, start=self.start_date, progress=False)
+            # Gestione robusta colonne (Adj Close vs Close)
             if 'Adj Close' in raw_data.columns:
                 data = raw_data['Adj Close']
             elif 'Close' in raw_data.columns:
@@ -248,6 +292,7 @@ class DataManager:
 
 # =============================================================================
 # CLASSE 2: FINANCIAL ANALYZER
+# Esegue i calcoli statistici sui dati finanziari.
 # =============================================================================
 class FinancialAnalyzer:
     def __init__(self, data, benchmark_data=None):
@@ -257,6 +302,7 @@ class FinancialAnalyzer:
         self.bench_r = None
 
     def calculate_returns(self):
+        """Calcola i rendimenti giornalieri e allinea le date col benchmark."""
         self.returns = self.prices.pct_change().dropna()
         if self.bench_p is not None:
             if isinstance(self.bench_p, pd.DataFrame):
@@ -268,12 +314,14 @@ class FinancialAnalyzer:
         return self.returns
 
     def _calc_max_drawdown(self, series):
+        """Calcola il Max Drawdown (perdita massima dal picco)."""
         comp = (1 + series).cumprod()
         peak = comp.expanding(min_periods=1).max()
         if peak.empty: return 0.0
         return ((comp/peak) - 1).min()
 
     def _prepare_stats_dataframe(self):
+        """Unisce stock e benchmark per le tabelle statistiche."""
         df_calc = self.returns.copy()
         if self.bench_r is not None:
             bench_s = self.bench_r.copy()
@@ -314,7 +362,8 @@ class FinancialAnalyzer:
         return res
 
 # =============================================================================
-# CLASSE 3: VISUALIZER (SENZA TITOLI)
+# CLASSE 3: VISUALIZER
+# Gestisce la creazione dei grafici con stile pulito e dimensioni ridotte.
 # =============================================================================
 class Visualizer:
     def __init__(self, prices, returns, benchmark=None, non_norm_metrics=None):
@@ -322,11 +371,13 @@ class Visualizer:
         self.non_norm_metrics = non_norm_metrics
 
     def _add_border(self, fig):
+        """Aggiunge il bordo grigio esterno alla figura."""
         fig.patch.set_linewidth(1.5)
         fig.patch.set_edgecolor('#999999')
         return fig
 
     def plot_normalized_prices(self):
+        """Grafico performance base 100."""
         norm = (self.prices / self.prices.iloc[0]) * 100
         fig, ax = plt.subplots() 
         colors = sns.color_palette("husl", len(norm.columns))
@@ -336,7 +387,7 @@ class Visualizer:
             bn = (self.bench / self.bench.iloc[0]) * 100
             ax.plot(bn.index, bn, label="FTSE MIB", color='#000000', ls='--', lw=2.5)
         
-        # FIX ASSE Y (STEP 100)
+        # Asse Y diviso per 100 come richiesto
         ax.yaxis.set_major_locator(mticker.MultipleLocator(100))
         
         ax.set_xlabel("")
@@ -346,6 +397,7 @@ class Visualizer:
         return self._add_border(fig)
 
     def plot_returns_boxplot(self):
+        """Boxplot distribuzione rendimenti."""
         fig, ax = plt.subplots()
         sns.boxplot(data=self.returns, ax=ax, palette="light:b", fliersize=3, linewidth=1)
         ax.grid(True, axis='y', linestyle=':', alpha=0.4)
@@ -354,24 +406,25 @@ class Visualizer:
         return self._add_border(fig)
 
     def plot_histogram_grid(self):
+        """Small Multiples per istogrammi."""
         df_combined = self.returns.copy()
         if self.bench is not None:
              df_combined['FTSE MIB'] = self.bench.pct_change().dropna()
         df_combined = df_combined.dropna()
         melt = df_combined.melt(var_name='Ticker', value_name='Rendimento')
         
-        # FacetGrid con aspect ratio bilanciato per la nuova dimensione
+        # Aspect Ratio calibrato
         g = sns.FacetGrid(melt, col="Ticker", col_wrap=3, sharex=False, sharey=False, height=1.5, aspect=1.3)
         g.map_dataframe(sns.histplot, x="Rendimento", kde=True, color="#778899", edgecolor="white", linewidth=0.5)
         
-        # TITOLI TICKER PIU PICCOLI
+        # Titoli piccoli
         g.set_titles("{col_name}", fontweight='bold', size=8)
         
         g.set_axis_labels("", "")
         for ax in g.axes.flat:
             ax.set_xlabel("")
             ax.set_ylabel("")
-            # TICKS MOLTO PICCOLI
+            # Etichette assi molto piccole per evitare sovrapposizioni
             ax.tick_params(axis='both', which='major', labelsize=6)
             
         g.despine(left=True)
@@ -381,12 +434,14 @@ class Visualizer:
         ]
         g.fig.legend(handles=legend_elements, loc='lower right', fontsize=8, bbox_to_anchor=(0.95, 0.05), frameon=False)
         plt.subplots_adjust(top=0.9, hspace=0.4, wspace=0.3)
-        g.fig.suptitle('Distribuzione Rendimenti', fontweight='bold', y=0.98)
+        
+        # Bordo alla figura FacetGrid
         g.fig.patch.set_linewidth(1.5)
         g.fig.patch.set_edgecolor('#999999')
         return g.fig
 
     def plot_correlation_heatmap(self):
+        """Matrice di correlazione."""
         fig, ax = plt.subplots()
         sns.heatmap(self.returns.corr(), annot=True, cmap='vlag', center=0, fmt=".2f", 
                     ax=ax, cbar_kws={'label': 'Correlazione'}, linewidths=0.5, linecolor='white', annot_kws={"size": 7})
@@ -394,6 +449,7 @@ class Visualizer:
 
 # =============================================================================
 # CLASSE 4: PORTFOLIO OPTIMIZER
+# Simulazione Monte Carlo per la Frontiera Efficiente.
 # =============================================================================
 class PortfolioOptimizer:
     def __init__(self, returns_df, num_portfolios=5000):
@@ -430,6 +486,7 @@ class PortfolioOptimizer:
         return max_sharpe_pt, min_vol_pt, max_w, min_w
 
     def plot_efficient_frontier(self, max_pt, min_pt):
+        # Mantiene dimensione grande (10, 6) per leggibilità
         fig, ax = plt.subplots(figsize=(10, 6))
         sc = ax.scatter(self.results['Volatilità'], self.results['Rendimento'], c=self.results['Sharpe'], cmap='viridis', s=15, alpha=0.5)
         cbar = plt.colorbar(sc)
@@ -576,40 +633,28 @@ def main():
             render_plot_with_description(
                 "Performance Relativa", 
                 viz.plot_normalized_prices(),
-                "Questo grafico normalizza il prezzo di tutti i titoli a quota 100 all'inizio del periodo. "
-                "Permette di confrontare la <b>performance percentuale cumulativa</b> indipendentemente dal valore nominale dell'azione.<br><br>"
-                "Ad esempio, se una linea raggiunge 110, significa che il titolo ha guadagnato il 10% nel periodo osservato.",
+                "Mostra l'andamento dei prezzi su base 100. Utile per confrontare la crescita cumulativa.",
                 current_tickers, ticker_mapping
             )
 
             render_plot_with_description(
                 "Dispersione (Rischio)", 
                 viz.plot_returns_boxplot(),
-                "Il Boxplot visualizza la distribuzione dei rendimenti giornalieri.<br><br>"
-                "<b>Scatola centrale:</b> Contiene il 50% dei dati centrali. Più è alta, più il titolo è volatile.<br>"
-                "<b>Linea interna:</b> Mediana dei rendimenti.<br>"
-                "<b>Punti esterni (Baffi):</b> Eventi estremi o anomali (outlier) positivi o negativi.",
+                "Visualizza la volatilità e gli outlier dei rendimenti giornalieri.",
                 current_tickers, ticker_mapping
             )
 
             render_plot_with_description(
                 "Correlazioni", 
                 viz.plot_correlation_heatmap(),
-                "Mostra come i titoli si muovono l'uno rispetto all'altro.<br><br>"
-                "<b>+1 (Rosso):</b> Si muovono in modo identico.<br>"
-                "<b>0 (Bianco):</b> Nessuna relazione.<br>"
-                "<b>-1 (Blu):</b> Si muovono in direzioni opposte.<br><br>"
-                "Utile per la diversificazione del portafoglio.",
+                "Misura quanto i titoli si muovono insieme. 1 = identico, -1 = opposto.",
                 current_tickers, ticker_mapping
             )
 
             render_plot_with_description(
                 "Distribuzioni", 
                 viz.plot_histogram_grid(),
-                "Mostra la frequenza dei rendimenti giornalieri per ogni titolo.<br><br>"
-                "<b>Campana simmetrica:</b> Distribuzione Normale (prevedibile).<br>"
-                "<b>Code lunghe (Fat Tails):</b> Indicano che eventi estremi (crolli o boom) sono più frequenti del previsto.<br>"
-                "<b>Sbilanciamento:</b> Tendenza a rendimenti positivi o negativi.",
+                "Frequenza dei rendimenti giornalieri. Indica la normalità della distribuzione.",
                 current_tickers, ticker_mapping
             )
 
@@ -639,7 +684,8 @@ def main():
                 
                 with col_plot:
                     st.pyplot(opt_obj.plot_efficient_frontier(max_pt, min_pt))
-                    # SPIEGAZIONE AGGIUNTA
+                    
+                    # --- AGGIUNTA SPIEGAZIONE METODOLOGICA ---
                     st.markdown("""
                     <div class="frontier-explainer">
                         <b>Nota Metodologica:</b> Il grafico utilizza il modello <i>Mean-Variance</i> (Markowitz) con simulazione Monte Carlo.<br>
