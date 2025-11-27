@@ -462,8 +462,8 @@ class PortfolioOptimizer:
         self.results = None
         self.weights = [] 
 
+    # Calcola le metriche statistiche fondamentali (media e covarianza) e imposta la riproducibilità (seed) prima di avviare il calcolo dei portafogli
     def simulate(self):
-        """Calcola le metriche statistiche fondamentali (media e covarianza) e imposta la riproducibilità (seed) prima di avviare il calcolo dei portafogli."""
         np.random.seed(42)
         mean_daily = self.ret.mean()
         cov_matrix = self.ret.cov()
@@ -471,8 +471,8 @@ class PortfolioOptimizer:
         results_list = []
         weights_list = [] 
 
+        #  Esegue il ciclo Monte Carlo: genera pesi casuali normalizzati e calcola rendimento, volatilità e Sharpe Ratio per ogni portafoglio simulato
         for _ in range(self.n):
-            """Esegue il ciclo Monte Carlo: genera pesi casuali normalizzati e calcola rendimento, volatilità e Sharpe Ratio per ogni portafoglio simulato."""
             w = np.random.random(n_assets)
             w /= np.sum(w)
             ret_ann = np.sum(mean_daily * w) * 252
@@ -736,6 +736,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
