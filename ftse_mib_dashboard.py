@@ -19,13 +19,13 @@ st.markdown("""
     
     /* 1. SFONDO GENERALE */
     .stApp {
-        background-color: #FFFDE7; /* Giallo chiaro */
+        background-color: #FFFDE7; 
     }
     
     /* 2. TESTI GLOBALI */
     html, body, p, li, div, span, label, h1, h2, h3, h4, h5, h6 {
         font-family: 'Roboto', sans-serif;
-        color: #000000 !important; /* Testo Nero ovunque */
+        color: #000000 !important;
     }
 
     /* 3. CARD TITOLO */
@@ -116,8 +116,8 @@ st.markdown("""
         border-top: 2px solid #999;
     }
     
-    /* BOX DESCRIZIONE GRAFICO (Nuovo) */
-    .chart-desc {
+    /* BOX DESCRIZIONE GRAFICO + LEGENDA */
+    .chart-desc-container {
         background-color: #ffffff;
         border-left: 4px solid #999;
         padding: 15px;
@@ -125,14 +125,25 @@ st.markdown("""
         height: 100%;
         display: flex;
         flex-direction: column;
-        justify-content: center;
+    }
+    .legend-scroll-box {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed #ccc;
+        max-height: 120px; /* Altezza limitata per evitare allungamento */
+        overflow-y: auto;  /* Scroll se la lista è lunga */
+        font-size: 0.85rem;
+    }
+    .legend-item {
+        margin-bottom: 4px;
+        line-height: 1.2;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # --- CONFIGURAZIONE GRAFICI ---
 sns.set_theme(style="ticks", context="notebook")
-plt.rcParams['figure.figsize'] = (6.0, 3.5) # Dimensione Ridotta
+plt.rcParams['figure.figsize'] = (6.0, 3.5)
 plt.rcParams['figure.facecolor'] = '#FFFDE7' 
 plt.rcParams['axes.facecolor'] = '#FFFFFF'
 plt.rcParams['text.color'] = '#000000'
@@ -166,10 +177,17 @@ class DataManager:
             "Tenaris": "TEN.MI", "Terna": "TRN.MI", "UniCredit": "UCG.MI", "Unipol": "UNI.MI"
         }
 
+    # NUOVO METODO: Restituisce mappa Ticker -> Nome Azienda
+    def get_ticker_to_name_mapping(self):
+        original_map = self._get_mapping()
+        # Inverte dizionario: {Ticker: Nome}
+        return {v: k for k, v in original_map.items()}
+
     def get_top_10_tickers(self):
         mapping = self._get_mapping()
         all_tickers = list(mapping.values())
         market_caps = {}
+        
         progress_bar = st.progress(0, text="Calcolo Market Cap in tempo reale...")
         try:
             batch_data = yf.download(all_tickers, period="1d", progress=False)
@@ -280,7 +298,7 @@ class FinancialAnalyzer:
         return res
 
 # =============================================================================
-# CLASSE 3: VISUALIZER (SENZA TITOLI INTERNI)
+# CLASSE 3: VISUALIZER (SENZA TITOLI)
 # =============================================================================
 class Visualizer:
     def __init__(self, prices, returns, benchmark=None, non_norm_metrics=None):
@@ -302,7 +320,6 @@ class Visualizer:
             bn = (self.bench / self.bench.iloc[0]) * 100
             ax.plot(bn.index, bn, label="FTSE MIB", color='#000000', ls='--', lw=2.5)
         
-        # RIMOSSO TITOLO
         ax.set_xlabel("")
         ax.grid(True, linestyle=':', alpha=0.4)
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', frameon=False, fontsize='small')
@@ -312,7 +329,6 @@ class Visualizer:
     def plot_returns_boxplot(self):
         fig, ax = plt.subplots()
         sns.boxplot(data=self.returns, ax=ax, palette="light:b", fliersize=3, linewidth=1)
-        # RIMOSSO TITOLO
         ax.grid(True, axis='y', linestyle=':', alpha=0.4)
         plt.xticks(rotation=45)
         plt.tight_layout()
@@ -335,8 +351,6 @@ class Visualizer:
             ax.set_ylabel("")
             
         g.despine(left=True)
-        # RIMOSSO SUPTITLE
-        
         g.fig.patch.set_linewidth(1.5)
         g.fig.patch.set_edgecolor('#999999')
         return g.fig
@@ -345,7 +359,6 @@ class Visualizer:
         fig, ax = plt.subplots()
         sns.heatmap(self.returns.corr(), annot=True, cmap='vlag', center=0, fmt=".2f", 
                     ax=ax, cbar_kws={'label': 'Correlazione'}, linewidths=0.5, linecolor='white', annot_kws={"size": 7})
-        # RIMOSSO TITOLO
         return self._add_border(fig)
 
 # =============================================================================
@@ -437,10 +450,18 @@ def main():
         tickers = dm.get_top_10_tickers()
         if not tickers: return None, None
         df = dm.download_historical_data(tickers)
-        return tickers, df
+        # Recupera anche il mapping per la legenda
+        mapping = dm.get_ticker_to_name_mapping()
+        return tickers, df, mapping
 
     with st.spinner("Scansione in tempo reale del mercato (potrebbe richiedere qualche secondo)..."):
-        tickers, df_tot = get_market_data()
+        # Modificato per ricevere 3 valori
+        data_result = get_market_data()
+        # Gestione errore se data_result è None
+        if data_result is None or data_result[0] is None:
+            st.error("Errore recupero dati.")
+            return
+        tickers, df_tot, ticker_mapping = data_result
 
     if df_tot is not None and not df_tot.empty:
         bench = None
@@ -494,61 +515,70 @@ def main():
                 st.subheader("4. Test di Normalità (Jarque-Bera)")
                 st.table(t_jb.style.format({"p-value": "{:.4f}"}))
 
-        # --- TAB 2: GRAFICI AFFIANCATI A TESTO ---
+        # --- TAB 2: GRAFICI SIDE-BY-SIDE CON LEGENDA ---
         with tab2:
             st.markdown("<hr class='custom-divider'>", unsafe_allow_html=True)
             
-            # Helper function per layout: Grafico SX (2 parti) | Testo DX (1 parte)
-            def render_plot_with_description(title, fig, description):
+            # Helper function per layout: Grafico SX (2 parti) | Testo+Legenda DX (1 parte)
+            def render_plot_with_description(title, fig, description, active_tickers, mapping):
                 col_chart, col_text = st.columns([2, 1])
                 
                 with col_chart:
                     st.pyplot(fig)
                 
                 with col_text:
-                    # Uso un box CSS per centrare verticalmente il testo
+                    # Costruzione HTML Legenda Ticker
+                    legend_html = "<b>Legenda Ticker:</b><div class='legend-scroll-box'>"
+                    for t in active_tickers:
+                        # Rimuovi .MI per pulizia
+                        clean_t = t.replace(".MI", "")
+                        name = mapping.get(t, "N/A")
+                        legend_html += f"<div class='legend-item'><b>{clean_t}</b>: {name}</div>"
+                    legend_html += "</div>"
+
                     st.markdown(f"""
-                    <div class="chart-desc">
+                    <div class="chart-desc-container">
                         <h3 style="margin-top:0;">{title}</h3>
                         <p style="font-size:0.95rem; line-height:1.5;">{description}</p>
+                        {legend_html}
                     </div>
                     """, unsafe_allow_html=True)
                 
                 st.markdown("---")
 
+            # I 10 ticker attuali per la legenda
+            current_tickers = df_stocks.columns.tolist()
+
             # 1. Normalized Prices
             render_plot_with_description(
                 "Performance Relativa", 
                 viz.plot_normalized_prices(),
-                "Questo grafico mostra l'andamento dei prezzi di tutti i titoli riportati a una base comune (100).<br><br>"
-                "Permette di confrontare rapidamente il rendimento cumulato nel periodo selezionato, ignorando il prezzo assoluto delle azioni."
+                "Mostra l'andamento dei prezzi su base 100. Utile per confrontare la crescita cumulativa.",
+                current_tickers, ticker_mapping
             )
 
             # 2. Boxplot
             render_plot_with_description(
                 "Dispersione (Rischio)", 
                 viz.plot_returns_boxplot(),
-                "Il Boxplot visualizza la volatilità dei rendimenti giornalieri.<br><br>"
-                "La scatola centrale contiene il 50% dei dati. L'ampiezza della scatola e la lunghezza dei 'baffi' indicano il rischio. "
-                "I punti esterni sono valori anomali (outlier)."
+                "Visualizza la volatilità e gli outlier dei rendimenti giornalieri.",
+                current_tickers, ticker_mapping
             )
 
             # 3. Heatmap
             render_plot_with_description(
                 "Correlazioni", 
                 viz.plot_correlation_heatmap(),
-                "La matrice di correlazione misura come i titoli si muovono insieme.<br><br>"
-                "<b>1.0:</b> Movimento identico.<br><b>0.0:</b> Nessun legame.<br><b>-1.0:</b> Movimento opposto.<br><br>"
-                "Utile per diversificare il portafoglio."
+                "Misura quanto i titoli si muovono insieme. 1 = identico, -1 = opposto.",
+                current_tickers, ticker_mapping
             )
 
             # 4. Histograms
             render_plot_with_description(
                 "Distribuzioni", 
                 viz.plot_histogram_grid(),
-                "Gli istogrammi mostrano la frequenza dei rendimenti giornalieri.<br><br>"
-                "Una forma a campana indica normalità. Code lunghe o asimmetrie suggeriscono rischi di eventi estremi (code grasse) "
-                "non previsti dai modelli standard."
+                "Frequenza dei rendimenti giornalieri. Indica la normalità della distribuzione.",
+                current_tickers, ticker_mapping
             )
 
         # --- TAB 3: OTTIMIZZAZIONE ---
@@ -603,5 +633,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
