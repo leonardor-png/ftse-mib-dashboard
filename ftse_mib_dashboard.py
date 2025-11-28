@@ -526,7 +526,7 @@ def main():
     with col_btn:
         st.write("") 
         st.write("") 
-        if st.button("🔄 Aggiorna Dati"):
+        if st.button("Aggiorna Dati"):
             st.cache_data.clear()
             st.rerun()
     # Setup della memoria persistente per evitare di perdere i dati della simulazione ad ogni interazione dell'utente
@@ -679,7 +679,7 @@ def main():
             st.markdown("### Ottimizzazione di Portafoglio (Markowitz)")
             st.caption("Simulazione Monte Carlo su 5000 portafogli casuali.")
             
-            st.button("🚀 Avvia Ottimizzazione", on_click=run_optimization_callback)
+            st.button("Avvia Ottimizzazione", on_click=run_optimization_callback)
             
             if st.session_state.opt_done:
                 max_pt = st.session_state.opt_max
@@ -736,6 +736,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
